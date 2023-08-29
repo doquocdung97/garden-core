@@ -16,7 +16,20 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-
+from django.http import JsonResponse
+from core import Core
+def test(request):
+    print(request)
+    core = Core()
+    document = core.create('test')
+    
+    if(not document):
+        document = core.get('test')
+        document.addObject('ObjectBase',"Furture_1")
+        document.addObject('ObjectBase',"Furture_2")
+        
+    return JsonResponse(document.save())
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('test/', test),
 ]

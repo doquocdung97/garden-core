@@ -1,2 +1,2 @@
-from . import Standard
-from .common import PropertyBase
+from .common import *
+from .Standard import *

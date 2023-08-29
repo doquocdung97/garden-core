@@ -1,6 +1,6 @@
 
 
-from common import *
+from .common import *
 import os
 main = MainProperty()
 class PropertyString(PropertyBase):
@@ -21,7 +21,7 @@ class PropertyString(PropertyBase):
         return self.__class__.__name__
     def toString(self):
         return self.__Value
-main.add(PropertyString)
+main.add(PropertyString.__name__,PropertyString)
 
 class PropertyInteger(PropertyBase):
     def __init__(self,obj,name,group,tip,status):
@@ -40,7 +40,7 @@ class PropertyInteger(PropertyBase):
         return self.__class__.__name__
     def toString(self):
         return self.__Value
-main.add(PropertyInteger)
+main.add(PropertyInteger.__name__,PropertyInteger)
 
 class PropertyBool(PropertyBase):
     def __init__(self,obj,name,group,tip,status):
@@ -59,7 +59,7 @@ class PropertyBool(PropertyBase):
     def toString(self):
         return self.__Value
       
-main.add(PropertyBool)
+main.add(PropertyBool.__name__,PropertyBool)
 
 class PropertyFile(PropertyBase):
     def __init__(self,obj,name,group,tip,status):
@@ -98,7 +98,7 @@ class PropertyFile(PropertyBase):
     def toString(self):
         return self.__Value
 
-main.add(PropertyFile)
+main.add(PropertyFile.__name__,PropertyFile)
 
 
 class PropertyLink(PropertyBase):
@@ -118,4 +118,4 @@ class PropertyLink(PropertyBase):
     def toString(self):
         return self.__Value
       
-main.add(PropertyLink)
+main.add(PropertyLink.__name__,PropertyLink)

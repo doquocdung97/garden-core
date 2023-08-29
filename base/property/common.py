@@ -54,17 +54,19 @@ class MainProperty():
     def __init__(self):
         # super().__init__()
         if(MainProperty.instance):
-            return MainProperty.instance
-        MainProperty.instance = self
+            self = MainProperty.instance
+        else:
+            MainProperty.instance = self
 
-    def get(self,name:str)->PropertyBase|None:
-        return self.properties[name]
-    def get(self)->list[PropertyBase]:
-        return self.properties
+    def get(self,name:str = None)->list[PropertyBase] | PropertyBase|None:
+        if not name:
+            return self.properties
+        return self.properties.get(name)
+    # def get(self)->list[PropertyBase]:
+    #     return self.properties
 
     def add(self,name,property)->bool:
-        items = self.getItems()
-        if not name in items:
-            self.properties[name] = property()
+        if not name in self.properties:
+            self.properties[name] = property
             return True
         return False
