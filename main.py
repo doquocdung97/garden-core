@@ -1,3 +1,40 @@
-import core
+# import core
 
-core.test()
+# core.test()
+# import click
+
+# @click.command()
+# @click.option('--count', default=1, prompt='count', help='Number of greetings.')
+# @click.option('--name', prompt='Your name',
+#               help='The person to greet.')
+# def hello(count, name):
+#     """Simple program that greets NAME for a total of COUNT times."""
+#     for x in range(count):
+#         click.echo(f"Hello {name}!")
+
+# if __name__ == '__main__':
+#     hello()
+
+#!/usr/bin/env python
+"""Django's command-line utility for administrative tasks."""
+import os
+import sys
+
+
+def main():
+    """Run administrative tasks."""
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'middleware.settings')
+    try:
+        from django.core.management import execute_from_command_line
+    except ImportError as exc:
+        raise ImportError(
+            "Couldn't import Django. Are you sure it's installed and "
+            "available on your PYTHONPATH environment variable? Did you "
+            "forget to activate a virtual environment?"
+        ) from exc
+    print("test")
+    execute_from_command_line(sys.argv)
+
+
+if __name__ == '__main__':
+    main()
