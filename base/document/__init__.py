@@ -64,6 +64,7 @@ class Document:
             object = mainobject.get(type)
             if object:
                 object = object(self)
+                object.setProperties()
                 object.Name = name
                 self.__dict__[name] = object
                 self.__objects.append(object)

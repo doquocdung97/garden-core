@@ -6,7 +6,6 @@ class ObjectBase:
         self.__isChange = False
         self.__propertys = []
         self.UUID = str(uuid.uuid4())
-        self.setProperties()
         
     def setProperties(self):
         if not "Name" in self.__propertys:
@@ -92,7 +91,6 @@ class ObjectBase:
         pass
     def __repr__(self):
         return self.__class__.__name__ + "({0})".format(self.Name)
-    
 class MainObject():
     instance = None
     properties = {}

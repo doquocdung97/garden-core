@@ -1,7 +1,6 @@
 from base.property.common import *
-import os
+from core import Core,Command
 main = MainProperty()
-
 class PropertyJson(PropertyBase):
     def valueDefault(self):
         return {}
@@ -11,3 +10,25 @@ class PropertyJson(PropertyBase):
                 return False
         return True
 main.add(PropertyJson)
+
+class _CommandVector2D(Command):
+    def __init__(self) -> None:
+        super(_CommandVector2D,self).__init__()
+    
+    
+    def GetResources(self):
+        return {
+            "Title","Data base",
+            "Tooltip","show data",
+        }
+
+    def IsActive(self) -> bool:
+        return True
+    
+    def Parameter(self):
+        return [int,int,str]
+    
+    def Activated(self,*args):
+        print("ok",args)
+
+Core.cmd.addCommand("Vector2D",_CommandVector2D())
