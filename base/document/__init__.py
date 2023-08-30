@@ -1,5 +1,5 @@
 from ..property import MainProperty
-from ..object import MainObject
+from ..object import MainObject,ObjectBase
 import uuid,tempfile,os,json
 
 class Document:
@@ -47,16 +47,18 @@ class Document:
     #     self.__attr = value
     # def Objects(self):
     #     return self.__objects
-    def addProperty(self,type,name,group = '',tip = '',status = 1):
+    def addProperty(self,type,name,group = '',tip = '',status = 1)->bool:
         if not hasattr(self,name):
             main_property = MainProperty()
             property = main_property.get(type)
             if property:
-                property = property(self,name,group,tip,status)
+                property = property(self,name,group,tip,status,type)
                 self.__dict__[name] = property
                 self.__propertys.append(name)
+                return True
+        return False
     
-    def addObject(self,type,name):
+    def addObject(self,type,name) ->ObjectBase|None:
         if not hasattr(self,name):
             mainobject = MainObject()
             object = mainobject.get(type)

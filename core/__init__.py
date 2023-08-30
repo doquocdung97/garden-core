@@ -1,9 +1,11 @@
 from base.document import Document
+import mod
 class Core():
     instance = None 
     documents = {}
 
     def __init__(self):
+        self.mod = mod.module
         # super().__init__()
         if(Core.instance):
             self =  Core.instance
@@ -28,10 +30,10 @@ class Core():
     def get(self,name:str = None)->list[Document]|Document|None:
         if not name:
             return self.documents
-        return self.documents[name]
+        return self.documents.get(name)
 
     def create(self,name)->Document|None:
         if not name in self.documents:
             self.documents[name] = Document()
-            return self.documents[name]
+            return self.documents.get(name)
         return None

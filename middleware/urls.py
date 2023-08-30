@@ -18,17 +18,26 @@ from django.contrib import admin
 from django.urls import path
 from django.http import JsonResponse
 from core import Core
+from base.property import MainProperty
 def test(request):
     print(request)
     core = Core()
-    document = core.create('test')
     
+    document = core.get('test')
     if(not document):
-        document = core.get('test')
-        document.addObject('ObjectBase',"Furture_1")
-        document.addObject('ObjectBase',"Furture_2")
+        document = core.create('test')
+        obj = document.addObject('ObjectBase',"Furture_1")
+        Furture_2 = document.addObject('ObjectBase',"Furture_2")
+        obj.addProperty("PropertyObject","base")
+        obj.base = Furture_2
         
-    return JsonResponse(document.save())
+    main = MainProperty()
+    data = {
+        "typeproperty":[name for name in main.get()],
+        "document":document.save()
+    }
+    return JsonResponse(data)
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('test/', test),

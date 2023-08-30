@@ -13,6 +13,9 @@ class ObjectBase:
             self.addProperty('PropertyString','Name')
         if not "Label" in self.__propertys:
             self.addProperty('PropertyString','Label')
+        if not "Strings" in self.__propertys:
+            self.addProperty('PropertyStrings','Strings')
+            self.Strings = ["dung","test"]
         pass
 
     def save(self,reader):
@@ -50,14 +53,17 @@ class ObjectBase:
 
     def onDocumentRestored(self,obj):
         pass
-    def addProperty(self,type,name,group = '',tip = '',status = 1):
+    def addProperty(self,type,name,group = '',tip = '',status = 1)->bool:
         if not hasattr(self,name):
             mainProperty = common.MainProperty()
             property = mainProperty.get(type)
             if property:
-                property = property(self,name,group,tip,status)
+                property = property(self,name,group,tip,status,type)
                 self.__dict__[name] = property
                 self.__propertys.append(name)
+                return True
+        return False
+    
     def __setattr__(self, name, value):
         if hasattr(self,name) and name in self.__propertys:
             self.__dict__[name].Value = value
@@ -66,9 +72,12 @@ class ObjectBase:
 
     def __getattribute__(self, name):
         try:
-            return super().__getattribute__(name).Value
+            property =  super().__getattribute__(name)
+            if isinstance(property,common.PropertyBase):
+                return property.Value
         except:
-            return super().__getattribute__(name)
+            pass
+        return super().__getattribute__(name)
 
     def setExecute(self):
         self.__document.setChange(True)

@@ -1,70 +1,54 @@
 
-
+from base.object import ObjectBase
 from .common import *
 import os
 main = MainProperty()
+
 class PropertyString(PropertyBase):
-    def __init__(self,obj,name,group,tip,status):
-        super(PropertyString,self).__init__(obj,name,group,tip,status)
-        self.__Value = ''
-    def getValue(self,isSave = False):
-        return self.__Value
+    def valueDefault(self):
+        return str()
+    
     def checkValue(self,val):
         if isinstance(val,str):
             return True
         else:
             return False
-    def setValue(self,val):
-        self.__Value = val
-
-    def getType(self):
-        return self.__class__.__name__
-    def toString(self):
-        return self.__Value
-main.add(PropertyString.__name__,PropertyString)
+main.addHasList(PropertyString)
 
 class PropertyInteger(PropertyBase):
-    def __init__(self,obj,name,group,tip,status):
-        super(PropertyInteger,self).__init__(obj,name,group,tip,status)
-        self.__Value = 0
-    def getValue(self,isSave = False):
-        return self.__Value
+    def valueDefault(self):
+        return 0
     def checkValue(self,val):
         if isinstance(val,int):
             return True
         else:
             return False
-    def setValue(self,val):
-        self.__Value = val
-    def getType(self):
-        return self.__class__.__name__
-    def toString(self):
-        return self.__Value
-main.add(PropertyInteger.__name__,PropertyInteger)
+main.addHasList(PropertyInteger)
 
 class PropertyBool(PropertyBase):
-    def __init__(self,obj,name,group,tip,status):
-        super(PropertyBool,self).__init__(obj,name,group,tip,status)
-        self.__Value = False
-    def getValue(self,isSave = False):
-        return self.__Value
+    def valueDefault(self):
+        return False
+    
     def checkValue(self,val):
         if isinstance(val,bool):
             return True
         else:
             return False
-    def setValue(self,val):
-        self.__Value = val
+main.addHasList(PropertyBool)
 
-    def toString(self):
-        return self.__Value
-      
-main.add(PropertyBool.__name__,PropertyBool)
+class PropertyFloat(PropertyBase):
+    def valueDefault(self):
+        return 0.0
+    def checkValue(self,val):
+        if isinstance(val,float):
+            return True
+        else:
+            return False
+main.addHasList(PropertyFloat)
 
 class PropertyFile(PropertyBase):
-    def __init__(self,obj,name,group,tip,status):
-        super(PropertyFile,self).__init__(obj,name,group,tip,status)
-        self.__Value = ''
+    def valueDefault(self):
+        return str()
     def getValue(self,isSave = False):
         filename =  self.__Value
         if self.__Value:
@@ -97,25 +81,25 @@ class PropertyFile(PropertyBase):
         pass
     def toString(self):
         return self.__Value
+main.add(PropertyFile)
 
-main.add(PropertyFile.__name__,PropertyFile)
-
-
-class PropertyLink(PropertyBase):
-    def __init__(self,obj,name,group,tip,status):
-        super(PropertyLink,self).__init__(obj,name,group,tip,status)
-        self.__Value = None
-    def getValue(self,isSave = False):
-        return self.__Value
-    def checkValue(self,val):
-        if isinstance(val,bool):
+class PropertyObject(PropertyBase):
+    
+    def checkValue(self,val:ObjectBase)->bool:
+        if isinstance(val,ObjectBase):
             return True
         else:
             return False
-    def setValue(self,val):
-        self.__Value = val
+    
+    def getValue(self, isSave=False):
+        value = super(PropertyObject,self).getValue(isSave)
+        if isSave and value:
+            return value.UUID
+        return value
+    
+    def setValue(self, val):
+        super(PropertyObject,self).setValue(val)
 
     def toString(self):
         return self.__Value
-      
-main.add(PropertyLink.__name__,PropertyLink)
+main.add(PropertyObject)
