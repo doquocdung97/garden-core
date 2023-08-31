@@ -20,7 +20,7 @@ from django.http import JsonResponse
 from core import Core
 from base.property import MainProperty
 def test(request):
-    print(request)
+    
     document = Core.get('test')
     if(not document):
         document = Core.create('test')
@@ -28,7 +28,8 @@ def test(request):
         Furture_2 = document.addObject('ObjectBase',"Furture_2")
         obj.addProperty("PropertyObject","base")
         obj.base = Furture_2
-    Core.cmd.runCommand('Vector2D',1,2,"")
+    result = Core.cmd.runCommand('Vector2D',1,2,"")
+    print(result)
     main = MainProperty()
     data = {
         "typeproperty":[name for name in main.get()],

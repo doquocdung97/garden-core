@@ -1,4 +1,9 @@
 from base.document import Document
+from .schedule import Schedule, EveryDay, EveryTime
+import schedule
+import threading
+import time
+
 class Command:
     def Parameter(self):
         """
@@ -22,10 +27,8 @@ class Command:
                     return False
             return True
         return False
-    def Activated(self,**arg):
+    def Activated(self,**arg)->any:
         pass
-
-
 class __MainCommand:
     def __init__(self) -> None:
         self.__commands = {}
@@ -37,26 +40,39 @@ class __MainCommand:
     def runCommand(self, name, *args):
         command = self.__commands.get(name)
         if (command and command.IsActive() and command.CheckParameter(*args)):
-            command.Activated(*args)
+            return command.Activated(*args)
+        return None
 
     def getCommand(self, name: str = None) -> Command | None:
         if name:
             return self.__commands.get(name)
         return self.__commands
 
+class __MainSchedule:
+    def __init__(self) -> None:
+        self.__schedules = {}
+
+    def add(self, obj:Schedule):
+        name = obj.__class__.__name__
+        if not name in self.__schedules:
+            time = obj.Time()
+            if isinstance(time,EveryTime):
+                schedule.every(time.minute).minute.do(obj.run)
+            self.__schedules[name] = obj
+    def remove(self, obj:Schedule):
+        name = obj.__class__.__name__
+        if name in self.__schedules:
+            del self.__schedules[name]
+    def loop(self):
+        schedule.run_pending()
+
 # cmd = __MainCommand()
+
 class __Core():
     def __init__(self):
         self.__documents = {}
-        self.__cmd = None
-        
-    @property
-    def cmd(self):
-        return self.__cmd
-
-    @cmd.setter
-    def cmd(self, val):
-        self.__cmd = val
+        self.cmd = None
+        self.schedule = None
 
     def get(self, name: str = None) -> list[Document] | Document | None:
         if not name:
@@ -68,7 +84,19 @@ class __Core():
             self.__documents[name] = Document()
             return self.__documents.get(name)
         return None
+    def loop(self):
+        if self.schedule:
+            self.schedule.loop()
+
 Core = __Core()
+def loop():
+    # function to print square of given num
+    while True:
+        Core.loop()
+        time.sleep(100)
+loopcore = threading.Thread(target=loop,daemon=True)
+loopcore.start()
 Core.cmd = __MainCommand()
+Core.schedule = __MainSchedule()
 import mod
 Core.mod = mod.modules

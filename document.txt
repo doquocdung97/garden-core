@@ -1,5 +1,11 @@
 #python -m venv venv
 
+
+#Activate
+#window
 venv\Scripts\activate
+
+#ubuntu
+source venv/bin/activate
 
 pip install -r requirements.txt

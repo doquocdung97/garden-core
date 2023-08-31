@@ -1,5 +1,8 @@
 from base.property.common import *
-from core import Core,Command
+from core import Core,Command,Schedule
+from core.schedule import EveryDay, EveryTime
+from common import loggerHelper
+import datetime
 main = MainProperty()
 class PropertyJson(PropertyBase):
     def valueDefault(self):
@@ -30,5 +33,16 @@ class _CommandVector2D(Command):
     
     def Activated(self,*args):
         print("ok",args)
+        return "dung demo"
 
 Core.cmd.addCommand("Vector2D",_CommandVector2D())
+
+class _ScheduleTest(Schedule):
+    def __init__(self) -> None:
+        super().__init__()
+    def Time(self) -> EveryDay | EveryTime:
+        return EveryTime(1)
+    def Activated(self):
+        self.logger.info("test schedule")
+        
+Core.schedule.add(_ScheduleTest())
