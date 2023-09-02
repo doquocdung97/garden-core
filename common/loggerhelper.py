@@ -1,7 +1,11 @@
 
-import logging
+import logging,os
 from datetime import datetime
 from constants import VARIATIONS
+
+def check_and_create_folder_log():
+    if not os.path.exists(VARIATIONS.FOLDER_LOG) or not os.path.isdir(VARIATIONS.FOLDER_LOG):
+        os.makedirs(VARIATIONS.FOLDER_LOG)
 class CustomFormatter(logging.Formatter):
     grey = "\x1b[38;20m"
     grey = "\x1b[38;20m"

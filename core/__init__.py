@@ -1,9 +1,7 @@
 from base.document import Document
 from .schedule import Schedule, EveryDay, EveryTime
-import schedule
-import threading
-import time
-from common import loggerHelper
+import time,threading,schedule
+from common import loggerHelper,check_and_create_folder_log
 from base.document import _MainDocument
 class Command:
     def Parameter(self):
@@ -81,6 +79,9 @@ class __Core():
         self.cmd = None
         self.schedule = None
         self.logger = loggerHelper("Core")
+
+        #check and create folder logs
+        check_and_create_folder_log()
 
     def get(self, name: str = None) -> dict| Document | None:
         if not name:
