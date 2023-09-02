@@ -36,13 +36,3 @@ class _CommandVector2D(Command):
         return "dung demo"
 
 Core.cmd.addCommand("Vector2D",_CommandVector2D())
-
-class _ScheduleTest(Schedule):
-    def __init__(self) -> None:
-        super().__init__()
-    def Time(self) -> EveryDay | EveryTime:
-        return EveryTime(1)
-    def Activated(self):
-        self.logger.info("test schedule")
-        
-Core.schedule.add(_ScheduleTest())

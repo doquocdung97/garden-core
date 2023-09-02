@@ -9,6 +9,8 @@ modules = []
 #         module =  importlib.import_module(f'{folder_path}.{folder}')
 #         models.append(module)
 from . import jsondata
-modules.append(jsondata)
+from . import schedule
+from . import sensor
+modules.extend([jsondata,schedule,sensor])
 # for module_name in module_names:
 #     module = importlib.import_module(f"{folder_path}.{module_name}")

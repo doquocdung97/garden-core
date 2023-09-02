@@ -23,7 +23,7 @@ class EveryTime:
 class Schedule:
     
     def __init__(self) -> None:
-        self.logger = loggerHelper(self.__class__.__name__)
+        # self.logger = loggerHelper(self.__class__.__name__)
         pass
     def Time(self)->EveryDay|EveryTime:
         pass

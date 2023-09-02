@@ -11,14 +11,22 @@ class Document:
         self.__filename = None
         self.__isTransaction = False
         self.UUID = str(uuid.uuid4())
-        self.setProperties()
+        self.__name = str()
+
+    @property
+    def Name(self):
+        return self.__name
+    
+    @Name.setter
+    def Name(self,val:str):
+        if isinstance(val,str):
+            self.__name = val
+        else:
+            raise ValueError("value not type string")
 
     def setProperties(self):
-        if not "Name" in self.__propertys:
-            self.addProperty('PropertyString','Name')
         if not "Label" in self.__propertys:
             self.addProperty('PropertyString','Label')
-        pass
     # @property
     # def TempDir(self):
     #     tempdir = os.path.join(tempfile.gettempdir(),__Project__ + self.UUID)
@@ -34,7 +42,7 @@ class Document:
         pass
     
     @property
-    def Objects(self):  
+    def Objects(self)->list[ObjectBase]:  
         return self.__objects
     
     def close(self):
@@ -63,14 +71,17 @@ class Document:
             mainobject = MainObject()
             object = mainobject.get(type)
             if object:
-                object = object(self)
+                object:ObjectBase = object(self)
                 object.setProperties()
                 object.Name = name
                 self.__dict__[name] = object
                 self.__objects.append(object)
                 self.__isChange = True
+                object.init()
                 return object
         return None
+    
+    
     
     def isChange(self):
         return self.__isChange
@@ -99,6 +110,8 @@ class Document:
             content = object.save(reader)
             objects.append(content)
         data = {
+            "name":self.Name,
+            "type":self.__class__.__name__,
             'uuid':self.UUID,
             'propertys':propertys,
             'objects': objects
@@ -119,8 +132,37 @@ class Document:
     #     if not filename:
     #         return False
     #     self.FileName = filename
-     
+    def __restoreObject(self,data):
+        type = data['type']
+        name = data['name']
+        if not hasattr(self,name):
+            mainobject = MainObject()
+            object = mainobject.get(type)
+            if object:
+                object:ObjectBase = object(self)
+                object.onDocumentRestoredBefore(data)
+                # object.restore(data)
+                self.__dict__[name] = object
+                self.__objects.append(object)
+                object.init()
+                return (object,data)
+    
+    def restore(self,jdata):
+        self.UUID = jdata['uuid']
+        self.Name = jdata['name']
+        for property in jdata['propertys']:
+            self.addProperty(property['type'],property['name'],property['group'],property['tip'],property['status'])
+            if property['name'] in self.__propertys:
+                self.__dict__[property['name']].restore(property)
 
+        objs = []
+        for object in jdata['objects']:
+            data = self.__restoreObject(object)
+            objs.append(data)
+        for obj,data in objs:
+            obj.restore(data)
+            obj.onDocumentRestoredAfter(data)
+            
     # def restore(self):
     #     with ZipFile(self.FileName,'r') as reader:
     #         reader.dataRestore = None
@@ -157,14 +199,53 @@ class Document:
         if hasattr(self,name) and self.__getattribute__(name) in self.__objects:
             raise ValueError("not set attr.")
         return super().__setattr__(name, value)
+    
     def __getattribute__(self, name):
         try:
             return super().__getattribute__(name).Value
         except:
             return super().__getattribute__(name)
 
+    def execute(self):
+        for obj in self.Objects:
+            if obj.IsChange:
+                obj.execute()
 
     def onBeforeChange(self,prop):
         pass
     def onChanged(self, prop):
         pass
+    def getObjectByName(self,name:str)->ObjectBase|None:
+        obj = self.__dict__.get(name)
+        if isinstance(obj,ObjectBase):
+            return obj
+        
+    def getObjectByUUID(self,uuid:str)->ObjectBase|None:
+        for obj in self.Objects:
+            if obj.UUID == uuid:
+                return obj
+        return None
+        
+    def onDelete(self,obj:ObjectBase):
+        if(self.getObjectByName(obj.Name)):
+            if obj.onDelete():
+                delattr(self,obj.Name)
+                self.Objects.remove(obj)
+class _MainDocument:
+    __documents = {}
+
+    def add(self, doc:Document):
+        name = doc.__name__
+        if isinstance(doc,Document):
+            raise TypeError("it is not type the Document.")
+        if not name in self.__documents:
+            self.__documents[name] = doc
+        else:
+            raise ValueError(f"name: {name} is already in the data")
+    def get(self,name:str = None)->dict|Document|None:
+        if name:
+            return self.__documents.get(name)
+        return self.__documents
+    
+main = _MainDocument()
+main.add(Document)

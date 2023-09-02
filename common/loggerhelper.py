@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 from constants import VARIATIONS
 class CustomFormatter(logging.Formatter):
-
+    grey = "\x1b[38;20m"
     grey = "\x1b[38;20m"
     yellow = "\x1b[33;20m"
     red = "\x1b[31;20m"
@@ -22,7 +22,7 @@ class CustomFormatter(logging.Formatter):
 
     def format(self, record):
         log_fmt = self.FORMATS.get(record.levelno)
-        formatter = logging.Formatter(log_fmt)
+        formatter = logging.Formatter(log_fmt,datefmt='%Y-%m-%d %H:%M:%S')
         return formatter.format(record)
     
 def loggerHelper(namepase):

@@ -1,3 +1,4 @@
+from common import group_duplicates
 class PropertyBase:
     def __init__(self, obj, name, group, tip, status, type):
         self.object = obj
@@ -38,9 +39,12 @@ class PropertyBase:
             'tip': self.tip,
             'status': self.status
         }
+    def convert(self,val):
+        return val
 
     def restore(self, reader=None):
-        self.setValue(reader.dataRestore['value'])
+        val = self.convert(reader['value'])
+        self.setValue(val)
         pass
 
     def getValue(self, isSave=False):
@@ -66,17 +70,62 @@ def PropertyListBase(target):
         def valueDefault(self):
             return []
 
-        def checkValue(self, vals):
-            for val in vals:
-                if not super().checkValue(val):
-                    return False
-            return True
-
+        def checkValue(self, vals:list):
+            if isinstance(vals,list):
+                for val in vals:
+                    if not super(PropertyListBase,self).checkValue(val):
+                        return False
+                return True
+            return False
+        def convert(self, vals):
+            return [super(PropertyListBase,self).convert(val) for val in vals]
+    
         def __repr__(self):
             return str(f'{name}({self.toString()})')
 
     return PropertyListBase
 
+def PropertyEnumBase(target):
+    name = f'{target.__name__}Enum'
+    class PropertyEnumBase(target):
+        def __init__(self, obj, name, group, tip, status, type):
+            super().__init__(obj, name, group, tip, status, type)
+            self.__Values = []
+        def checkValue(self,val):
+            if isinstance(val,list) and val != self.__Values:
+                for v in val:
+                    if not super(PropertyEnumBase,self).checkValue(v) or (isinstance(v,str) and not v):
+                        return False
+                return True
+            elif super(PropertyEnumBase,self).checkValue(val) and len(self.__Values) > 0 and val in self.__Values:
+                return True
+            else:
+                return False
+            
+        def save(self, reader=None):
+            val = super(PropertyEnumBase,self).save(reader)
+            val["values"] = self.__Values
+            return val
+        def getValues(self):
+            return self.__Values
+        
+        def setValue(self, val):
+            if isinstance(val,list):
+                self.__Values = group_duplicates(val)
+                v = super(PropertyEnumBase,self).getValue()
+                if v and not v in val:
+                    super(PropertyEnumBase,self).setValue(None)
+            else:
+                super(PropertyEnumBase,self).setValue(val)
+
+        def __repr__(self):
+            return str(f'{name}({self.toString()})')
+        
+        def restore(self, reader=None):
+            self.setValue(reader['value'])
+            self.__Values = reader['values']
+
+    return PropertyEnumBase
 
 class MainProperty():
     instance = None
@@ -95,23 +144,19 @@ class MainProperty():
         return self.properties.get(name)
     # def get(self)->list[PropertyBase]:
     #     return self.properties
-
-    def addHasList(self, property: type) -> bool:
+    
+    def add(self, property: type,isList:bool = False, isEnum:bool = False) -> bool:
         name = property.__name__
         if issubclass(property, PropertyBase):
             datas = [
-                (name,property),
-                (f'{name}s',PropertyListBase(property)),
+                (name,property)
             ]
+            if isList:
+                datas.append((f'{name}s',PropertyListBase(property)))
+            if isEnum:
+                datas.append((f'{name}Enum',PropertyEnumBase(property)))
             for item in datas:
                 if not item[0] in self.properties:
                     self.properties[item[0]] = item[1]
-            return True
-        return False
-    
-    def add(self, property: type) -> bool:
-        name = property.__name__
-        if issubclass(property, PropertyBase) and not name in self.properties:
-            self.properties[name] = property
             return True
         return False

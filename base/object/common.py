@@ -1,117 +1,108 @@
 from ..property import common
 import uuid
+from common import loggerHelper
 class ObjectBase:
-    def __init__(self,document):
-        self.__document = document
-        self.__isChange = False
-        self.__propertys = []
-        self.UUID = str(uuid.uuid4())
-        
-    def setProperties(self):
-        if not "Name" in self.__propertys:
-            self.addProperty('PropertyString','Name')
-        if not "Label" in self.__propertys:
-            self.addProperty('PropertyString','Label')
-        if not "Strings" in self.__propertys:
-            self.addProperty('PropertyStrings','Strings')
-            self.Strings = ["dung","test"]
-        pass
+	def __init__(self,document):
+		self.__document = document
+		self.__isChange = False
+		self.__propertys = []
+		self.UUID = str(uuid.uuid4())
+		self.Name = str()
+	def setProperties(self):
+		if not "Label" in self.__propertys:
+			self.addProperty('PropertyString','Label')
 
-    def save(self,reader):
-        propertys = []
-        for property in self.__propertys:
-            dataproperty = self.__dict__[property].save(reader)
-            propertys.append(dataproperty)
+	def save(self,reader):
+		propertys = []
+		for property in self.__propertys:
+			dataproperty = self.__dict__[property].save(reader)
+			propertys.append(dataproperty)
 
-        return {
-            'uuid':self.UUID,
-            'type':self.__class__.__name__,
-            'name':self.Name, 
-            'propertys':propertys
-        }
-        
-    def restore(self,reader):
-        propertys = reader.dataRestore
-        for property in propertys:
-            self.addProperty(property['type'],property['name'],property['group'],property['tip'],property['status'])
-            if property['name'] in self.__propertys:
-                reader.dataRestore = property
-                self.__dict__[property['name']].restore(reader)
-    
+		return {
+			'uuid':self.UUID,
+			'type':self.__class__.__name__,
+			'name':self.Name, 
+			'propertys':propertys
+		}
+		
+	def restore(self,reader):
+		for property in reader["propertys"]:
+			self.addProperty(property['type'],property['name'],property['group'],property['tip'],property['status'])
+			if property['name'] in self.__propertys:
+				self.__dict__[property['name']].restore(property)
+	
+	def IsChange(self):
+		return self.__isChange
+	def setChange(self,status):
+		self.__isChange = status
+	@property
+	def Document(self):
+		return self.__document
+	@property
+	def propertys(self):
+		return self.__propertys
 
-    def isChange(self):
-        return self.__isChange
-    def setChange(self,status):
-        self.__isChange = status
-    @property
-    def Document(self):
-        return self.__document
-    @property
-    def propertys(self):
-        return self.__propertys
+	def onDocumentRestoredBefore(self,reader):
+		self.UUID = reader['uuid']
+		self.Name = reader['name']
+		pass
+	def onDocumentRestoredAfter(self,reader:dict):
+		pass
+	def addProperty(self,type,name,group = '',tip = '',status = 1)->bool:
+		if not hasattr(self,name):
+			mainProperty = common.MainProperty()
+			property = mainProperty.get(type)
+			if property:
+				property = property(self,name,group,tip,status,type)
+				self.__dict__[name] = property
+				self.__propertys.append(name)
+				return True
+		return False
+	
+	def __setattr__(self, name, value):
+		if hasattr(self,name) and name in self.__propertys:
+			self.__dict__[name].Value = value
+			return
+		return super().__setattr__(name, value)
 
-    def onDocumentRestored(self,obj):
-        pass
-    def addProperty(self,type,name,group = '',tip = '',status = 1)->bool:
-        if not hasattr(self,name):
-            mainProperty = common.MainProperty()
-            property = mainProperty.get(type)
-            if property:
-                property = property(self,name,group,tip,status,type)
-                self.__dict__[name] = property
-                self.__propertys.append(name)
-                return True
-        return False
-    
-    def __setattr__(self, name, value):
-        if hasattr(self,name) and name in self.__propertys:
-            self.__dict__[name].Value = value
-            return
-        return super().__setattr__(name, value)
+	def __getattribute__(self, name):
+		try:
+			property =  super().__getattribute__(name)
+			if isinstance(property,common.PropertyBase):
+				return property.Value
+		except:
+			pass
+		return super().__getattribute__(name)
 
-    def __getattribute__(self, name):
-        try:
-            property =  super().__getattribute__(name)
-            if isinstance(property,common.PropertyBase):
-                return property.Value
-        except:
-            pass
-        return super().__getattribute__(name)
+	def execute(self):
+		self.__document.setChange(True)
+		self.setChange(False)
 
-    def setExecute(self):
-        self.__document.setChange(True)
-        self.execute()
-        self.setChange(False)
-
-    def execute(self):
-        pass
-    def onBeforeChange(self,prop):
-        pass
-    def onChanged(self, prop):
-        pass
-    def __repr__(self):
-        return self.__class__.__name__ + "({0})".format(self.Name)
+	def init(self):
+		self.logger = loggerHelper(f"Object({self.Name})")
+	def getProperty(self,name:str):
+		property = self.__dict__.get(name)
+		return property
+	def onBeforeChange(self,prop):
+		pass
+	def onDelete(self)->bool:
+		return True
+	def onChanged(self, prop):
+		pass
+	def __repr__(self):
+		return self.__class__.__name__ + "({0})".format(self.Name)
 class MainObject():
-    instance = None
-    properties = {}
+	__properties = {}
+	def get(self,name:str =None)->type|None:
+		if not name:
+			return self.__properties
+		return self.__properties.get(name)
 
-    def __init__(self):
-        # super().__init__()
-        if(MainObject.instance):
-            self = MainObject.instance
-        else:
-            MainObject.instance = self
-
-    def get(self,name:str =None)->ObjectBase|None:
-        if not name:
-            return self.properties
-        return self.properties.get(name)
-
-    def add(self,name,property)->bool:
-        if not name in self.properties:
-            self.properties[name] = property
-            return True
-        return False
-    
+	def add(self,name,property)->bool:
+		if not name in self.__properties:
+			self.__properties[name] = property
+			return True
+		return False
+	
 main = MainObject()
 main.add(ObjectBase.__name__,ObjectBase)
