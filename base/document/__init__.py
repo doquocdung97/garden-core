@@ -1,7 +1,7 @@
 from ..property import MainProperty
 from ..object import MainObject,ObjectBase
 import uuid,tempfile,os,json
-
+from core._version import __project__
 class Document:
     def __init__(self):
         self.__isChange = False
@@ -27,18 +27,17 @@ class Document:
     def setProperties(self):
         if not "Label" in self.__propertys:
             self.addProperty('PropertyString','Label')
-    # @property
-    # def TempDir(self):
-    #     tempdir = os.path.join(tempfile.gettempdir(),__Project__ + self.UUID)
-    #     if not os.path.exists(tempdir):
-    #         os.makedirs(tempdir)
-    #     return tempdir
+    @property
+    def TempDir(self):
+        tempdir = os.path.join(tempfile.gettempdir(),__project__ + self.UUID)
+        if not os.path.exists(tempdir):
+            os.makedirs(tempdir)
+        return tempdir
 
     def openTransaction(self,name):
         pass
 
     def commitTransaction(self):
-        
         pass
     
     @property
