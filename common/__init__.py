@@ -17,3 +17,29 @@ def validate_time(time_str):
         return True
     else:
         return False
+def indexToFormat(index:int,num:int)->str:
+    # if len(str(index)) < num:
+    if index == 0:
+        return str()
+    lenght = num - len(str(index))
+    zero = str()
+    if lenght > 0:
+        for i in range(lenght):
+            zero += str(0)
+    return f"{zero}{index}"
+
+
+def createAttribute(obj,name):
+    nameold = re.sub(r'[^a-zA-Z0-9]', '_', name)
+    index = 0
+    while(True):
+        name = f"{nameold}{indexToFormat(index,3)}"
+        if isinstance(obj,dict):
+            if not name in obj:
+                return name
+        else:
+            if not hasattr(obj,name):
+                return name
+        index+=1
+def formatName(name:str)->str:
+    return re.sub(r'[^a-zA-Z0-9]', '_', name)

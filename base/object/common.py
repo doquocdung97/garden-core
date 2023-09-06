@@ -1,6 +1,6 @@
 from ..property import common
 import uuid
-from common import loggerHelper
+from common import loggerHelper,createAttribute
 class ObjectBase:
 	def __init__(self,document):
 		self.__document = document
@@ -48,16 +48,16 @@ class ObjectBase:
 		pass
 	def onDocumentRestoredAfter(self,reader:dict):
 		pass
-	def addProperty(self,type,name,group = '',tip = '',status = 1)->bool:
-		if not hasattr(self,name):
-			mainProperty = common.MainProperty()
-			property = mainProperty.get(type)
-			if property:
-				property = property(self,name,group,tip,status,type)
-				self.__dict__[name] = property
-				self.__propertys.append(name)
-				return True
-		return False
+	def addProperty(self,type:str,name:str,group:str = '',tip:str = '',status:int = 1)->bool:
+		mainProperty = common.MainProperty()
+		property = mainProperty.get(type)
+		if property:
+			name = createAttribute(self,name)
+			property = property(self,name,group,tip,status,type)
+			self.__dict__[name] = property
+			self.__propertys.append(name)
+			return True
+		return None
 	
 	def __setattr__(self, name, value):
 		if hasattr(self,name) and name in self.__propertys:

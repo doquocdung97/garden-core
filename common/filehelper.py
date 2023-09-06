@@ -1,26 +1,47 @@
-import shutil
-from os import path
+import shutil,os
 from .loggerhelper import loggerHelper
 
-__log = loggerHelper("FileHelper")
+# __log = loggerHelper("FileHelper")
 class FileHelper:
-    def __init__(self) -> None:
+    def __init__(self,pathfile:str) -> None:
+        self.__pathfile = pathfile
         # self. __log = loggerHelper(self.__class__.__name__)
         pass
     def upload(self,path:str,file):
         pass
-    def copy(self,source_file:str,destination_directory:str):
-        shutil.copy(source_file, destination_directory)
-    def read(self,path):
-        with open(path, 'rb') as binary_file:
+
+    def copy(self,destination_directory:str):
+        shutil.copy(self.__pathfile, destination_directory)
+        return FileHelper(destination_directory)
+
+    def read(self):
+        with open(self.__pathfile, 'rb') as binary_file:
             return binary_file.read()
         
-    def toFileType(self,file_path:str):
-        file_name = path.basename(file_path)
-        file_type = path.splitext(file_name)[1]
+    def isNone(self):
+        if os.path.exists(self.__pathfile):
+            return True
+        return False
+    
+    def toFileType(self):
+        file_name = os.path.basename(self.__pathfile)
+        file_type = os.path.splitext(file_name)[1]
         return file_type.replace('.',str()) 
     
-    def toFileName(self,file_path:str):
-        file_name = path.basename(file_path)
-        file_type = path.splitext(file_name)[1]
+    def toFileName(self,all:bool = False):
+        file_name = os.path.basename(self.__pathfile)
+        if all:
+            return file_name
+        file_type = os.path.splitext(file_name)[1]
         return file_name.replace(file_type,str())  
+    
+    def delete(self):
+        if os.path.exists(self.__pathfile):
+            os.remove(self.__pathfile)
+            return True
+        return False
+    def deleteDir(self):
+        if os.path.exists(self.__pathfile):
+            shutil.rmtree(self.__pathfile)
+            return True
+        return False

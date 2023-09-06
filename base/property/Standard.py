@@ -5,6 +5,7 @@ from base.common import Vector
 from .common import *
 import os
 from common import validate_time
+from base.media import Media
 main = MainProperty()
 
 class PropertyString(PropertyBase):
@@ -12,20 +13,14 @@ class PropertyString(PropertyBase):
         return str()
     
     def checkValue(self,val):
-        if isinstance(val,str):
-            return True
-        else:
-            return False
+        return isinstance(val,str)
 main.add(PropertyString,True,True)
 
 class PropertyInteger(PropertyBase):
     def valueDefault(self):
         return 0
     def checkValue(self,val):
-        if isinstance(val,int):
-            return True
-        else:
-            return False
+        return isinstance(val,int)
 main.add(PropertyInteger,True,True)
 
 class PropertyBool(PropertyBase):
@@ -33,66 +28,39 @@ class PropertyBool(PropertyBase):
         return False
     
     def checkValue(self,val):
-        if isinstance(val,bool):
-            return True
-        else:
-            return False
+        return isinstance(val,bool)
 main.add(PropertyBool,True)
 
 class PropertyFloat(PropertyBase):
     def valueDefault(self):
         return 0.0
     def checkValue(self,val):
-        if isinstance(val,float):
-            return True
-        else:
-            return False
+        return isinstance(val,float)
 main.add(PropertyFloat,True,True)
 
-class PropertyFile(PropertyBase):
-    def valueDefault(self):
-        return str()
-    def getValue(self,isSave = False):
-        filename =  self.__Value
-        if self.__Value:
-            filename = os.path.join(self.object.Document.TempDir,self.__Value)
-            if not os.path.exists(filename):
-                filename = ''
-        return filename
+class PropertyMedia(PropertyBase):
+    def getValue(self, isSave=False):
+        value = super(PropertyMedia,self).getValue(isSave)
+        if isSave and value:
+            if isinstance(value,list):
+                    return [v.UUID for v in value]
+            return value.UUID
+        return value
         
     def checkValue(self,val):
-        if isinstance(val,str) and os.path.exists(val):
-            return True
-        else:
-            raise ValueError('not file')
-            return False
-    def setValue(self,val):
-        from shutil import copyfile
-        filename = os.path.join(self.object.Document.TempDir,os.path.basename(val))
+        return isinstance(val,Media)
 
-        copyfile(val, filename)
+    def convert(self, val):
+        doc = self.object.Document
+        return doc.getMediaByUUID(val)
 
-        self.__Value = os.path.basename(val)
-
-    def save(self,reader):
-        if self.getValue() not in reader['file']:
-            reader['file'].append(self.getValue())
-
-        return super(PropertyFile,self).save(reader)
-    def restore(self,reader = None):
-        self.__Value = reader['value']
-        pass
     def toString(self):
         return self.__Value
-main.add(PropertyFile)
+main.add(PropertyMedia,True)
 
 class PropertyObject(PropertyBase):
-    
     def checkValue(self,val:ObjectBase)->bool:
-        if isinstance(val,ObjectBase):
-            return True
-        else:
-            return False
+        return isinstance(val,ObjectBase)
     
     def getValue(self, isSave=False):
         value = super(PropertyObject,self).getValue(isSave)

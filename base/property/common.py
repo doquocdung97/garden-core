@@ -81,7 +81,8 @@ def PropertyListBase(target):
             return [super(PropertyListBase,self).convert(val) for val in vals]
     
         def __repr__(self):
-            return str(f'{name}({self.toString()})')
+            # val = super(PropertyListBase,self).toString()
+            return str(f'{name}({self.getValue()})')
 
     return PropertyListBase
 

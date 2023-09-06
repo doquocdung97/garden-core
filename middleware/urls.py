@@ -27,8 +27,12 @@ def test(request):
 	document = Core.get('test')
 	if(not document):
 		document = Core.create("Document","test")
-		obj = document.addObject('ObjectSchedule',"Furture_1")
-		Furture_2 = document.addObject('ObjectBase',"Furture_2")
+		document.Label = "test demo"
+		media = document.addMedia('./requirements.txt',"label requirement")
+		media1 = document.addMedia('./install.bat',"install")
+		obj = document.addObject('ObjectSchedule',"Furture")
+		obj.Label = "Furture_1 demo test"
+		Furture_2 = document.addObject('ObjectBase',"Furture")
 		Furture_2.Label = "demo test"
 		obj.addProperty("PropertyStrings","Texts")
 		obj.Texts = ["1","2","3"]
@@ -36,18 +40,21 @@ def test(request):
 		obj.addProperty("PropertyObject","base")
 		obj.addProperty("PropertyFloatEnum","Datas")
 		obj.addProperty("PropertyVectors","Vector")
+		obj.addProperty("PropertyMedias","Media","group","this is list medias",2)
 		obj.Vector = [Vector(10,10,10),Vector(10,20,10),Vector(10,30,0.10)]
 		obj.Datas = [1.1,2.0,0.0]
 		obj.base = Furture_2
+		obj.Media = [media,media1]
+		
 		obj.Time =time(0,0,1)
 	# obj2 = document.addObject('ObjectBase',"Furture_3")
 	# document.onDelete(obj2)
 	result = Core.cmd.runCommand('Vector2D',1,2,"")
 	print(result)
-	main = MainProperty()
+	# main = MainProperty()
 	data = {
-		"typeproperty":[name for name in main.get()],
-		"document":document.save()
+		# "typeproperty":[name for name in main.get()],
+		"document":document.toJSON()
 	}
 	return JsonResponse(data)
 # test(None)
@@ -75,31 +82,25 @@ def command(request):
 		"result":e
 		})
 def save(request):
-	path = os.path.abspath("./backup")
-	file_name = "data.json"
+	# path = os.path.abspath("./backup")
+	# file_name = "data.json"
 	doc = Core.get("test")
 	data = {}
 	if doc:
 		data = doc.save()
-		try:
-			with open(os.path.join(path,file_name), "w") as json_file:
-				# Write the data to the file in JSON format
-				json.dump(data, json_file)
-		finally:
-			json_file.close()
+		# try:
+		# 	with open(os.path.join(path,file_name), "w") as json_file:
+		# 		# Write the data to the file in JSON format
+		# 		json.dump(data, json_file)
+		# finally:
+		# 	json_file.close()
 	return JsonResponse(data)
 
 def restore(request):
-	path = os.path.abspath("./backup")
-	file_name = "data.json"
-	data = {}
-	try:
-		with open(os.path.join(path,file_name), "r") as json_file:
-			data = json.load(json_file)
-			Core.restore(data)
-	finally:
-		json_file.close()
-	return JsonResponse(data)
+	path = request.GET.get('path', "")
+	path = os.path.abspath(path)
+	doc = Core.restore(path)
+	return JsonResponse(doc.toJSON())
 
 urlpatterns = [
 	path('admin/', admin.site.urls),
