@@ -9,117 +9,117 @@ from base.media import Media
 main = MainProperty()
 
 class PropertyString(PropertyBase):
-    def valueDefault(self):
-        return str()
-    
-    def checkValue(self,val):
-        return isinstance(val,str)
+		def valueDefault(self):
+				return str()
+		
+		def checkValue(self,val):
+				return isinstance(val,str)
 main.add(PropertyString,True,True)
 
 class PropertyInteger(PropertyBase):
-    def valueDefault(self):
-        return 0
-    def checkValue(self,val):
-        return isinstance(val,int)
+		def valueDefault(self):
+				return 0
+		def checkValue(self,val):
+				return isinstance(val,int)
 main.add(PropertyInteger,True,True)
 
 class PropertyBool(PropertyBase):
-    def valueDefault(self):
-        return False
-    
-    def checkValue(self,val):
-        return isinstance(val,bool)
+		def valueDefault(self):
+				return False
+		
+		def checkValue(self,val):
+				return isinstance(val,bool)
 main.add(PropertyBool,True)
 
 class PropertyFloat(PropertyBase):
-    def valueDefault(self):
-        return 0.0
-    def checkValue(self,val):
-        return isinstance(val,float)
+		def valueDefault(self):
+				return 0.0
+		def checkValue(self,val):
+				return isinstance(val,float)
 main.add(PropertyFloat,True,True)
 
 class PropertyMedia(PropertyBase):
-    def getValue(self, isSave=False):
-        value = super(PropertyMedia,self).getValue(isSave)
-        if isSave and value:
-            if isinstance(value,list):
-                    return [v.UUID for v in value]
-            return value.UUID
-        return value
-        
-    def checkValue(self,val):
-        return isinstance(val,Media)
+		def getValue(self, isSave=False):
+				value = super(PropertyMedia,self).getValue(isSave)
+				if isSave and value:
+						if isinstance(value,list):
+										return [v.UUID for v in value]
+						return value.UUID
+				return value
+				
+		def checkValue(self,val):
+				return isinstance(val,Media)
 
-    def convert(self, val):
-        doc = self.object.Document
-        return doc.getMediaByUUID(val)
+		def convert(self, val):
+				doc = self.object.Document
+				return doc.getMediaByUUID(val)
 
-    def toString(self):
-        return self.__Value
+		def toString(self):
+				return self.__Value
 main.add(PropertyMedia,True)
 
 class PropertyObject(PropertyBase):
-    def checkValue(self,val:ObjectBase)->bool:
-        return isinstance(val,ObjectBase)
-    
-    def getValue(self, isSave=False):
-        value = super(PropertyObject,self).getValue(isSave)
-        
-        if isSave and value:
-            if isinstance(value,list):
-                    return [v.UUID for v in value]
-            return value.UUID
-        return value
-    
-    def setValue(self, val):
-        super(PropertyObject,self).setValue(val)
+		def checkValue(self,val:ObjectBase)->bool:
+				return isinstance(val,ObjectBase)
+		
+		def getValue(self, isSave=False):
+				value = super(PropertyObject,self).getValue(isSave)
+				
+				if isSave and value:
+						if isinstance(value,list):
+										return [v.UUID for v in value]
+						return value.UUID
+				return value
+		
+		def setValue(self, val):
+				super(PropertyObject,self).setValue(val)
 
 
-    def convert(self,val):
-        doc = self.object.Document
-        return doc.getObjectByUUID(val)
+		def convert(self,val):
+				doc = self.object.Document
+				return doc.getObjectByUUID(val)
 
 main.add(PropertyObject,True)
 from datetime import time
 
 class PropertyTime(PropertyBase):
-    def valueDefault(self):
-        return time(0,0)
-    
-    def checkValue(self,val:time):
-        return isinstance(val,time)
-    def convert(self,val):
-        return time(val.get("hour"),val.get("minute"),val.get("second"))
+		def valueDefault(self):
+				return time(0,0)
+		
+		def checkValue(self,val:time):
+				return isinstance(val,time)
+		def convert(self,val):
+				return time(val.get("hour"),val.get("minute"),val.get("second"))
 
-    def getValue(self, isSave=False):
-        if isSave:
-            val:time = self.getValue()
-            return {
-                "hour":val.hour,
-                "minute":val.minute,
-                "second":val.second,
-            }
-        return super().getValue(isSave)
-    
+		def getValue(self, isSave=False):
+				if isSave:
+						val:time = self.getValue()
+						return {
+								"hour":val.hour,
+								"minute":val.minute,
+								"second":val.second,
+						}
+				return super().getValue(isSave)
+		
 main.add(PropertyTime)
 
 class PropertyVector(PropertyBase):
-    def valueDefault(self):
-        return Vector()
-    
-    def checkValue(self,val:Vector):
-        return isinstance(val,Vector)
-    
-    def convert(self, val):
-        return Vector.parse(val)
+		def valueDefault(self):
+				return Vector()
+		
+		def checkValue(self,val:Vector):
+				return isinstance(val,Vector)
+		
+		def convert(self, val):
+				return Vector.parse(val)
 
-    def getValue(self, isSave=False):
-        if isSave:
-            val:Vector = super().getValue()
-            if val:
-                if isinstance(val,list):
-                    return [v.toJSON() for v in val]
-                return val.toJSON()
-        return super().getValue(isSave)
-    
+		def getValue(self, isSave=False):
+				if isSave:
+						val:Vector = super().getValue()
+						if val:
+								if isinstance(val,list):
+										return [v.toJSON() for v in val]
+								return val.toJSON()
+				return super().getValue(isSave)
+		
 main.add(PropertyVector,True)

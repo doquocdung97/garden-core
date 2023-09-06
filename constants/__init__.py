@@ -1,2 +1,2 @@
 class VARIATIONS:
-    FOLDER_LOG = "logs"
+	FOLDER_LOG = "logs"

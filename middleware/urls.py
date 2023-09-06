@@ -21,6 +21,7 @@ from core import Core
 from base.property import MainProperty
 from datetime import time
 from base.common import Vector
+from base.document import _MainDocument
 import os,json
 def test(request):
 	
@@ -102,6 +103,14 @@ def restore(request):
 	doc = Core.restore(path)
 	return JsonResponse(doc.toJSON())
 
+def config(request):
+	main = MainProperty()
+	maindoc = _MainDocument()
+	data = {
+		"typeproperty":[name for name in main.get()],
+		"typedocument":[name for name in maindoc.get()],
+	}
+	return JsonResponse(data)
 urlpatterns = [
 	path('admin/', admin.site.urls),
 	path('test/', test),
@@ -109,4 +118,5 @@ urlpatterns = [
 	path('command/', command),
 	path('restore/', restore),
 	path('save/', save),
+	path('config/', config),
 ]
