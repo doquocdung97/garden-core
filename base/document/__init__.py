@@ -23,6 +23,7 @@ class Document(HanlderProperty):
 
 	def init(self):
 		self.__log = loggerHelper(str(self))
+		self.__isChange = True
 	@property
 	def Name(self):
 		return self.__name
@@ -93,6 +94,7 @@ class Document(HanlderProperty):
 			if name:
 				media.Name = name
 			self.__medias.append(media)
+			self.__isChange = True
 			return media
 	
 	def getMediaByName(self,name:str):
@@ -109,8 +111,6 @@ class Document(HanlderProperty):
 	
 	def isChange(self):
 		return self.__isChange
-	def setChange(self,status):
-		self.__isChange = status
 
 	@property
 	def FileName(self):
@@ -123,7 +123,6 @@ class Document(HanlderProperty):
 
 	def save(self):
 		try:
-			self.__isChange = False
 			with ZipFile(self.FileName,'w') as zf:
 				data = self.toJSON()
 				with zf.open("data.json", "w") as c:
@@ -131,6 +130,7 @@ class Document(HanlderProperty):
 				for media in self.__medias:
 					zf.write(media.PathFile,media.FileName)
 				zf.close()
+			self.__isChange = False
 			return self.toJSON()
 		except Exception as ex:
 			self.__log.error(f"save document error: {ex}")
@@ -200,7 +200,7 @@ class Document(HanlderProperty):
 			self.Name = render['name']
 			for property in render['propertys']:
 				self.addProperty(property['type'],property['name'],property['group'],property['tip'],property['status'])
-				if property['name'] in self.__propertys:
+				if property['name'] in self.propertys:
 					self.__dict__[property['name']].restore(property)
 
 			objs = []
@@ -217,7 +217,7 @@ class Document(HanlderProperty):
 			for obj,data in objs:
 				obj.restore(data)
 				obj.onDocumentRestoredAfter(data)
-
+			self.__isChange = False
 		except Exception as ex:
 			self.__log.error(f"restore document error: {ex}")
 			
@@ -258,10 +258,12 @@ class Document(HanlderProperty):
 		for obj in self.Objects:
 			if obj.IsChange:
 				obj.execute()
+		self.__isChange = False
 
 	def onBeforeChange(self,prop):
 		pass
 	def onChanged(self, prop):
+		self.__isChange = True
 		pass
 	def getObjectByName(self,name:str)->ObjectBase|None:
 		obj = self.__dict__.get(name)
@@ -279,9 +281,11 @@ class Document(HanlderProperty):
 			if obj.onDelete():
 				delattr(self,obj.Name)
 				self.__objects.remove(obj)
+				self.__isChange = True
 	def deleteMedia(self,media:Media):
 		media.onDelete()
 		self.__medias.remove(media)
+		self.__isChange = True
 	def onDelete(self):
 		for index in range(len(self.__medias)):
 			media = self.__medias[0]

@@ -69,4 +69,4 @@ class ObjectSchedule(ObjectBase):
 						self.setJob()
 
 main = MainObject()
-main.add(ObjectSchedule.__name__,ObjectSchedule)
+main.add(ObjectSchedule)

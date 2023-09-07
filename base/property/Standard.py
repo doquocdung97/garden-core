@@ -35,7 +35,11 @@ class PropertyFloat(PropertyBase):
 		def valueDefault(self):
 				return 0.0
 		def checkValue(self,val):
-				return isinstance(val,float)
+				return isinstance(val,float) or isinstance(val,int)
+		def setValue(self, val):
+			if isinstance(val,int):
+				val = float(val)
+			return super().setValue(val)
 main.add(PropertyFloat,True,True)
 
 class PropertyMedia(PropertyBase):

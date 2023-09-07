@@ -22,6 +22,7 @@ from base.property import MainProperty
 from datetime import time
 from base.common import Vector
 from base.document import _MainDocument
+from base.object import MainObject
 import os,json
 def test(request):
 	
@@ -106,9 +107,11 @@ def restore(request):
 def config(request):
 	main = MainProperty()
 	maindoc = _MainDocument()
+	mainobj = MainObject()
 	data = {
-		"typeproperty":[name for name in main.get()],
 		"typedocument":[name for name in maindoc.get()],
+		"typeobject":[name for name in mainobj.get()],
+		"typeproperty":[name for name in main.get()],
 	}
 	return JsonResponse(data)
 urlpatterns = [

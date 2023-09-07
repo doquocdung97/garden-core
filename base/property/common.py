@@ -128,6 +128,12 @@ def PropertyEnumBase(target):
 
 		return PropertyEnumBase
 
+class PropertyParameter(PropertyBase):
+	def save(self, reader=None):
+		data =  super().save(reader)
+		data.pop("value")
+		return data
+
 class MainProperty():
 		instance = None
 		properties = {}
@@ -165,9 +171,8 @@ class MainProperty():
 class HanlderProperty:
 		def __init__(self) -> None:
 				self.__propertys = []
-				pass
 		@property
-		def propertys(self):
+		def propertys(self)->list[str]:
 			return self.__propertys
 		def getProperty(self,name:str):
 			property = self.__dict__.get(name)
@@ -183,17 +188,20 @@ class HanlderProperty:
 						return True
 				return None
 		
+		def checkNameInProperty(self,name:str)->bool:
+			return (name in self.__propertys)
+		
 		def __setattr__(self, name, value):
 			if hasattr(self,name) and name in self.__propertys:
 				self.__dict__[name].Value = value
 				return
-			return super().__setattr__(name, value)
+			return super(HanlderProperty,self).__setattr__(name, value)
 
 		def __getattribute__(self, name):
 			try:
-				if name in self.__propertys:
-					property =  super().__getattribute__(name)
+				property =  super(HanlderProperty,self).__getattribute__(name)
+				if isinstance(property,PropertyBase):
 					return property.Value
 			except:
 				pass
-			return super().__getattribute__(name)
+			return super(HanlderProperty,self).__getattribute__(name)

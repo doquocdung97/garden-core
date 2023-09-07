@@ -2,7 +2,6 @@ from ..property import HanlderProperty
 import uuid
 from common import loggerHelper,createAttribute
 class ObjectBase(HanlderProperty):
-	
 	def __init__(self,document):
 		super(ObjectBase,self).__init__()
 		self.__document = document
@@ -13,7 +12,7 @@ class ObjectBase(HanlderProperty):
 	def setProperties(self):
 		if not "Label" in self.propertys:
 			self.addProperty('PropertyString','Label')
-
+	
 	def save(self,reader):
 		propertys = []
 		for property in self.propertys:
@@ -35,8 +34,7 @@ class ObjectBase(HanlderProperty):
 	
 	def IsChange(self):
 		return self.__isChange
-	def setChange(self,status):
-		self.__isChange = status
+	
 	@property
 	def Document(self):
 		return self.__document
@@ -46,14 +44,16 @@ class ObjectBase(HanlderProperty):
 		self.Name = reader['name']
 		pass
 	def onDocumentRestoredAfter(self,reader:dict):
+		self.__isChange = False
 		pass
 
 	def execute(self):
 		self.__document.setChange(True)
-		self.setChange(False)
+		self.__isChange = False
 
 	def init(self):
 		self.logger = loggerHelper(f"Object({self.Name})")
+		self.__isChange = True
 
 	def onBeforeChange(self,prop):
 		pass
@@ -62,6 +62,7 @@ class ObjectBase(HanlderProperty):
 		return True
 	
 	def onChanged(self, prop):
+		self.__isChange = True
 		pass
 	def __repr__(self):
 		return self.__class__.__name__ + "({0})".format(self.Name)
@@ -72,11 +73,21 @@ class MainObject():
 			return self.__properties
 		return self.__properties.get(name)
 
-	def add(self,name,property)->bool:
+	def add(self,property,name:str = None)->bool:
+		if not name:
+			name = property.__name__
 		if not name in self.__properties:
 			self.__properties[name] = property
 			return True
 		return False
 	
 main = MainObject()
-main.add(ObjectBase.__name__,ObjectBase)
+
+class ObjectGroup(ObjectBase):
+	def setProperties(self):
+		if not self.checkNameInProperty("Child"):
+			self.addProperty("PropertyObjects","Child")
+		return super().setProperties()
+	
+main.add(ObjectBase)
+main.add(ObjectGroup)
