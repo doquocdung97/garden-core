@@ -4,3 +4,6 @@ tensorflow>=2.1.0
 schedule>=1.2.0
 zipfile36
 pytz
+ariadne
+pydantic
+ariadne_django

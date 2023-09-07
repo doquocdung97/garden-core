@@ -24,6 +24,8 @@ from base.common import Vector
 from base.document import _MainDocument
 from base.object import MainObject
 import os,json
+from ariadne_django.views import GraphQLView
+from .graphql import schema
 def test(request):
 	
 	document = Core.get('test')
@@ -122,4 +124,6 @@ urlpatterns = [
 	path('restore/', restore),
 	path('save/', save),
 	path('config/', config),
+	path('graphql/', GraphQLView.as_view(schema=schema), name='graphql'),
+
 ]
