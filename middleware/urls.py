@@ -24,8 +24,10 @@ from base.common import Vector
 from base.document import _MainDocument
 from base.object import MainObject
 import os,json
-from ariadne_django.views import GraphQLView
+from graphene_django.views import GraphQLView
 from .graphql import schema
+from django.views.decorators.csrf import csrf_exempt
+
 def test(request):
 	
 	document = Core.get('test')
@@ -61,7 +63,7 @@ def test(request):
 		"document":document.toJSON()
 	}
 	return JsonResponse(data)
-# test(None)
+test(None)
 def update(request):
 	time = request.GET.get('time', None)
 	document = Core.get('test')
@@ -124,6 +126,6 @@ urlpatterns = [
 	path('restore/', restore),
 	path('save/', save),
 	path('config/', config),
-	path('graphql/', GraphQLView.as_view(schema=schema), name='graphql'),
+	path('graphql/', csrf_exempt(GraphQLView.as_view(graphiql=True,schema=schema)),name="graphql"),
 
 ]

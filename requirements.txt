@@ -7,3 +7,4 @@ pytz
 ariadne
 pydantic
 ariadne_django
+django-cors-headers

@@ -6,9 +6,19 @@ class ObjectBase(HanlderProperty):
 		super(ObjectBase,self).__init__()
 		self.__document = document
 		self.__isChange = False
+		self.__outlist = [] # all object children
+		self.__inlist = []	#all object parent
 		self.UUID = str(uuid.uuid4())
 		self.Name = str()
 
+	@property
+	def OutList(self):
+		return self.__outlist
+	
+	@property
+	def InList(self):
+		return self.__inlist
+	
 	def setProperties(self):
 		if not "Label" in self.propertys:
 			self.addProperty('PropertyString','Label')
@@ -48,7 +58,6 @@ class ObjectBase(HanlderProperty):
 		pass
 
 	def execute(self):
-		self.__document.setChange(True)
 		self.__isChange = False
 
 	def init(self):

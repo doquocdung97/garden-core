@@ -1,11 +1,11 @@
 from common import group_duplicates,createAttribute
 class PropertyBase:
-		def __init__(self, obj, name, group, tip, status, type):
+		def __init__(self, obj, name, group, description, status, type):
 				self.object = obj
 				self.__Name = name
 				self.__type = type
 				self.group = group
-				self.tip = tip
+				self.description = description
 				self.status = status
 				self.__Value = self.valueDefault()
 
@@ -23,7 +23,7 @@ class PropertyBase:
 								self.object.onBeforeChange(self.__Name)
 								self.setValue(val)
 								self.object.onChanged(self.__Name)
-								self.object.setChange(True)
+								# self.object.setChange(True)
 				else:
 						raise ValueError('not value type')
 
@@ -36,7 +36,7 @@ class PropertyBase:
 						'type': self.__type,
 						'value': self.getValue(True),
 						'group': self.group,
-						'tip': self.tip,
+						'description': self.description,
 						'status': self.status
 				}
 		def convert(self,val):
@@ -89,8 +89,8 @@ def PropertyListBase(target):
 def PropertyEnumBase(target):
 		name = f'{target.__name__}Enum'
 		class PropertyEnumBase(target):
-				def __init__(self, obj, name, group, tip, status, type):
-						super().__init__(obj, name, group, tip, status, type)
+				def __init__(self, obj, name, group, description, status, type):
+						super().__init__(obj, name, group, description, status, type)
 						self.__Values = []
 				def checkValue(self,val):
 						if isinstance(val,list) and val != self.__Values:
@@ -177,12 +177,12 @@ class HanlderProperty:
 		def getProperty(self,name:str):
 			property = self.__dict__.get(name)
 			return property
-		def addProperty(self,type:str,name:str,group:str = '',tip:str = '',status:int = 1)->bool:
+		def addProperty(self,type:str,name:str,group:str = '',description:str = '',status:int = 1)->bool:
 				mainProperty = MainProperty()
 				property = mainProperty.get(type)
 				if property:
 						name = createAttribute(self,name)
-						property = property(self,name,group,tip,status,type)
+						property = property(self,name,group,description,status,type)
 						self.__dict__[name] = property
 						self.__propertys.append(name)
 						return True
