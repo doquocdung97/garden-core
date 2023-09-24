@@ -1,7 +1,7 @@
 
 from typing import Any
 from base.object import ObjectBase
-from base.common import Vector
+from base.common import Vector,Color
 from .common import *
 import os
 from common import validate_time
@@ -127,3 +127,24 @@ class PropertyVector(PropertyBase):
 				return super().getValue(isSave)
 		
 main.add(PropertyVector,True)
+
+class PropertyColor(PropertyBase):
+	def valueDefault(self):
+		return Color()
+	
+	def checkValue(self,val:Color):
+		return isinstance(val,Color)
+	
+	def convert(self, val):
+		return Color.parse(val)
+
+	def getValue(self, isSave=False):
+		if isSave:
+			val:Color = super().getValue()
+			if val:
+				if isinstance(val,list):
+					return [v.toJSON() for v in val]
+				return val.toJSON()
+		return super().getValue(isSave)
+
+main.add(PropertyColor,True)

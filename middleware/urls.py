@@ -20,7 +20,7 @@ from django.http import JsonResponse
 from core import Core
 from base.property import MainProperty
 from datetime import time
-from base.common import Vector
+from base.common import Vector, Color
 from base.document import _MainDocument
 from base.object import MainObject
 import os,json
@@ -36,7 +36,7 @@ def test(request):
 		document.Label = "test demo"
 		media = document.addMedia('./requirements.txt',"label requirement")
 		media1 = document.addMedia('./install.bat',"install")
-		obj = document.addObject('ObjectSchedule',"Furture")
+		obj = document.addObject('ObjectBase',"Furture")
 		obj.Label = "Furture_1 demo test"
 		Furture_2 = document.addObject('ObjectBase',"Furture")
 		Furture_2.Label = "demo test"
@@ -46,11 +46,13 @@ def test(request):
 		obj.addProperty("PropertyObject","base")
 		obj.addProperty("PropertyFloatEnum","Datas")
 		obj.addProperty("PropertyVectors","Vector")
-		obj.addProperty("PropertyMedias","Media","group","this is list medias",2)
+		obj.addProperty("PropertyMedias","Medias","group","this is list medias",2)
+		obj.addProperty("PropertyColor","Color","group","this is Color",2)
+		obj.Color = Color(1,20,40)
 		obj.Vector = [Vector(10,10,10),Vector(10,20,10),Vector(10,30,0.10)]
 		obj.Datas = [1.1,2.0,0.0]
 		obj.base = Furture_2
-		obj.Media = [media,media1]
+		obj.Medias = [media,media1]
 		
 		obj.Time =time(0,0,1)
 	# obj2 = document.addObject('ObjectBase',"Furture_3")
@@ -113,6 +115,7 @@ def config(request):
 	maindoc = _MainDocument()
 	mainobj = MainObject()
 	data = {
+		"command":[name for name in Core.cmd.get()],
 		"typedocument":[name for name in maindoc.get()],
 		"typeobject":[name for name in mainobj.get()],
 		"typeproperty":[name for name in main.get()],

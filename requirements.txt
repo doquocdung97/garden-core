@@ -8,3 +8,5 @@ ariadne
 pydantic
 ariadne_django
 django-cors-headers
+graphene_django
+pyserial

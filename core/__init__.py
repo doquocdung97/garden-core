@@ -43,7 +43,7 @@ class __MainCommand:
 					return False
 		return True
 	def runCommand(self, name, *args):
-		command = self.getCommand(name)
+		command = self.get(name)
 		if command and command.IsActive():
 			if self.CheckParameter(command,*args):
 				return command.Activated(*args)
@@ -51,7 +51,7 @@ class __MainCommand:
 				raise ValueError("Parameters do not match")
 		return None
 
-	def getCommand(self, name: str = None) -> Command | None:
+	def get(self, name: str = None) -> Command | None:
 		if name:
 			return self.__commands.get(name)
 		return self.__commands
