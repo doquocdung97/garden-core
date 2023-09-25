@@ -53,21 +53,28 @@ class ObjectSerial(ObjectBase):
 			
 	def init(self):
 		self.ser = None
-		self.__checkConnect()
+		if not self.Port:
+			self.Port = self.listport
+		self.IsOpen = self.__isOpen
 		super().init()
+		self.__checkConnect()
+		
 
-	def listport(self,data):
-		pass
+	def listport(self,property):
+		return [v.name for v in list_ports.comports()]
 
 	def setProperties(self):
 		if not "AutoConnect" in self.propertys:
 			self.addProperty("PropertyBool","AutoConnect")
-			self.AutoConnect = False
+			self.AutoConnect = True
 
 		if not "Port" in self.propertys:
 			self.addProperty("PropertyStringEnum","Port")
-			self.Port = ['COM1', 'COM5', 'COM6', 'COM8', 'COM3', 'COM4']
+			self.Port = self.listport
 			self.Port = 'COM8'
+
+		if not "IsOpen" in self.propertys:
+			self.addProperty("PropertyBoolView","IsOpen")
 		
 		if not "Timeout" in self.propertys:
 			self.addProperty("PropertyInteger","Timeout")
@@ -103,21 +110,23 @@ class ObjectSerial(ObjectBase):
 			self.ser.close()
 			return True
 		return False
-
-	def isOpen(self):
+  
+	def __isOpen(self):
 		if isinstance(self.ser,serial.Serial):
 			return self.ser.is_open
 		return False
 
 	def read(self):
-		if isinstance(self.ser,serial.Serial):
+		if self.__isOpen():
 			serBarCode = self.ser.readline()
 			if len(serBarCode) >= 1:
 				return serBarCode.decode("utf-8")
-		
+		return None
 	def send(self,cmd:str):
-		if isinstance(self.ser,serial.Serial):
+		if self.__isOpen():
 			self.ser.write(cmd.encode())
+			return True
+		return False
 
 	def onDelete(self):
 		self.disConnect()

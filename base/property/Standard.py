@@ -29,7 +29,7 @@ class PropertyBool(PropertyBase):
 		
 		def checkValue(self,val):
 				return isinstance(val,bool)
-main.add(PropertyBool,True)
+main.add(PropertyBool,True,isView=True)
 
 class PropertyFloat(PropertyBase):
 		def valueDefault(self):

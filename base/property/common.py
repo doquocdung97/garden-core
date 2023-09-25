@@ -1,12 +1,14 @@
 from common import group_duplicates,createAttribute
+from  inspect import ismethod,isfunction
 class PropertyBase:
-		def __init__(self, obj, name, group, description, status, type):
+		def __init__(self, obj, name, group, description, status, type,attribute):
 				self.object = obj
 				self.__Name = name
 				self.__type = type
 				self.group = group
 				self.description = description
 				self.status = status
+				self.attribute = attribute
 				self.__Value = self.valueDefault()
 
 		def valueDefault(self):
@@ -89,29 +91,40 @@ def PropertyListBase(target):
 def PropertyEnumBase(target):
 		name = f'{target.__name__}Enum'
 		class PropertyEnumBase(target):
-				def __init__(self, obj, name, group, description, status, type):
-						super().__init__(obj, name, group, description, status, type)
+				def __init__(self, obj, name, group, description, status, type, attribute):
+						super().__init__(obj, name, group, description, status, type, attribute)
 						self.__Values = []
 				def checkValue(self,val):
-						if isinstance(val,list) and val != self.__Values:
+						if ismethod(val) or isfunction(val):
+							return True
+						elif isinstance(val,list) and val != self.getValues():
 								for v in val:
 										if not super(PropertyEnumBase,self).checkValue(v) or (isinstance(v,str) and not v):
 												return False
 								return True
-						elif super(PropertyEnumBase,self).checkValue(val) and len(self.__Values) > 0 and val in self.__Values:
+						elif super(PropertyEnumBase,self).checkValue(val) and len(self.getValues()) > 0 and val in self.getValues():
 								return True
 						else:
 								return False
 						
 				def save(self, reader=None):
-						val = super(PropertyEnumBase,self).save(reader)
-						val["values"] = self.__Values
-						return val
+						data = super(PropertyEnumBase,self).save(reader)
+						data["values"] = []
+						val = self.__Values
+						if not (ismethod(val) or isfunction(val)):
+							data["values"] = val
+						return data
+				
 				def getValues(self):
+						if (ismethod(self.__Values) or isfunction(self.__Values)):
+							return self.__Values(self)
 						return self.__Values
 				
 				def setValue(self, val):
-						if isinstance(val,list):
+						if ismethod(val) or isfunction(val):
+							self.__Values = val
+							super(PropertyEnumBase,self).setValue(None)
+						elif isinstance(val,list):
 								self.__Values = group_duplicates(val)
 								v = super(PropertyEnumBase,self).getValue()
 								if v and not v in val:
@@ -127,6 +140,38 @@ def PropertyEnumBase(target):
 						self.__Values = reader['values']
 
 		return PropertyEnumBase
+
+def PropertyViewBase(target):
+	name = f'{target.__name__}View'
+	class PropertyViewBase(target):
+		@property
+		def Value(self):
+			return super(PropertyViewBase,self).Value
+		
+		def checkValue(self,val):
+			if ismethod(val) or isfunction(val):
+				return True
+			
+		@Value.setter
+		def Value(self, val):
+			if ismethod(val) or isfunction(val):
+				super(PropertyViewBase,self).setValue(val)
+			else:
+				raise ValueError('value only read')
+		
+		def save(self, reader=None):
+			return super(PropertyViewBase,self).save(reader)
+		
+		def getValue(self, isSave=False):
+			val = super(PropertyViewBase,self).getValue()
+			if ismethod(val) or isfunction(val):
+				return val()
+			return self.valueDefault()
+		
+		def __repr__(self):
+			return str(f'{name}({self.toString()})')
+		
+	return PropertyViewBase
 
 class PropertyParameter(PropertyBase):
 	def save(self, reader=None):
@@ -152,7 +197,7 @@ class MainProperty():
 		# def get(self)->list[PropertyBase]:
 		#     return self.properties
 		
-		def add(self, property: type,isList:bool = False, isEnum:bool = False) -> bool:
+		def add(self, property: type,isList:bool = False, isEnum:bool = False, isView:bool = False) -> bool:
 				name = property.__name__
 				if issubclass(property, PropertyBase):
 						datas = [
@@ -162,6 +207,8 @@ class MainProperty():
 								datas.append((f'{name}s',PropertyListBase(property)))
 						if isEnum:
 								datas.append((f'{name}Enum',PropertyEnumBase(property)))
+						if isView:
+							datas.append((f'{name}View',PropertyViewBase(property)))
 						for item in datas:
 								if not item[0] in self.properties:
 										self.properties[item[0]] = item[1]
@@ -181,12 +228,12 @@ class HanlderProperty:
 		def getProperty(self,name:str):
 			property = self.__dict__.get(name)
 			return property
-		def addProperty(self,type:str,name:str,group:str = '',description:str = '',status:int = 1)->bool:
+		def addProperty(self,type:str,name:str,group:str = '',description:str = '',status:int = 1,attribute = None)->bool:
 				mainProperty = MainProperty()
 				property = mainProperty.get(type)
 				if property:
 						name = createAttribute(self,name)
-						property = property(self,name,group,description,status,type)
+						property = property(self,name,group,description,status,type,attribute)
 						self.__dict__[name] = property
 						self.__propertys.append(name)
 						return True
