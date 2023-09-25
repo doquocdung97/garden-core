@@ -9,6 +9,7 @@ class ObjectBase(HanlderProperty):
 		self.__outlist = [] # all object children
 		self.__inlist = []	#all object parent
 		self.UUID = str(uuid.uuid4())
+		self.__init = False
 		self.Name = str()
 
 	@property
@@ -63,7 +64,11 @@ class ObjectBase(HanlderProperty):
 	def init(self):
 		self.logger = loggerHelper(f"Object({self.Name})")
 		self.__isChange = True
-
+		self.__init = True
+		
+	def isInit(self):
+		return self.__init
+	
 	def onBeforeChange(self,prop):
 		pass
 

@@ -171,6 +171,10 @@ class MainProperty():
 class HanlderProperty:
 		def __init__(self) -> None:
 				self.__propertys = []
+		
+		def isInit(self):
+			return True
+		
 		@property
 		def propertys(self)->list[str]:
 			return self.__propertys

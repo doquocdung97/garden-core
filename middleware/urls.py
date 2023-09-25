@@ -38,7 +38,7 @@ def test(request):
 		media1 = document.addMedia('./install.bat',"install")
 		obj = document.addObject('ObjectBase',"Furture")
 		obj.Label = "Furture_1 demo test"
-		Furture_2 = document.addObject('ObjectBase',"Furture")
+		Furture_2 = document.addObject('ObjectSerial',"Furture")
 		Furture_2.Label = "demo test"
 		obj.addProperty("PropertyStrings","Texts")
 		obj.Texts = ["1","2","3"]
@@ -57,7 +57,7 @@ def test(request):
 		obj.Time =time(0,0,1)
 	# obj2 = document.addObject('ObjectBase',"Furture_3")
 	# document.onDelete(obj2)
-	result = Core.cmd.runCommand('Vector2D',1,2,"")
+	result = Core.cmd.run('Vector2D',1,2,"")
 	print(result)
 	# main = MainProperty()
 	data = {

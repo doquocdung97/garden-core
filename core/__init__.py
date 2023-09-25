@@ -29,23 +29,23 @@ class __MainCommand:
 	def __init__(self) -> None:
 		self.__commands = {}
 
-	def addCommand(self, name, action):
+	def add(self, name, action):
 		if not name in self.__commands:
 			self.__commands[name] = action
 		else:
 			raise ValueError(f"Name: {name} is already in the command")
 
-	def CheckParameter(self,command:Command,*args):
+	def __check_parameter(self,command:Command,*args):
 		param = command.Parameter()
 		if not param or param and len(param) == len(args):
 			for index,arg in enumerate(args):
 				if not isinstance(arg,param[index]):
 					return False
 		return True
-	def runCommand(self, name, *args):
+	def run(self, name, *args):
 		command = self.get(name)
 		if command and command.IsActive():
-			if self.CheckParameter(command,*args):
+			if self.__check_parameter(command,*args):
 				return command.Activated(*args)
 			else:
 				raise ValueError("Parameters do not match")

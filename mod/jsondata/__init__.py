@@ -35,4 +35,4 @@ class _CommandVector2D(Command):
 		print("ok",args)
 		return "dung demo"
 
-Core.cmd.addCommand("Vector2D",_CommandVector2D())
+Core.cmd.add("Vector2D",_CommandVector2D())
