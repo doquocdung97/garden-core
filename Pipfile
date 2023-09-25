@@ -1,0 +1,23 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+django = "*"
+click = "*"
+tensorflow = ">=2.1.0"
+schedule = ">=1.2.0"
+zipfile36 = "*"
+pytz = "*"
+ariadne = "*"
+pydantic = "*"
+ariadne-django = "*"
+django-cors-headers = "*"
+graphene-django = "*"
+pyserial = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"
