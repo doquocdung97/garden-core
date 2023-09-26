@@ -53,7 +53,18 @@ class PropertyMedia(PropertyBase):
 				
 		def checkValue(self,val):
 				return isinstance(val,Media)
-
+		
+		def toJSON(self):
+			data = super(PropertyMedia,self).toJSON()
+			val = super(PropertyMedia,self).getValue()
+			if val:
+				if isinstance(val,list):
+					data["value"] = [v.toJSON() for v in val]
+				else:
+					data["value"] = val.toJSON()
+			
+			return data
+			
 		def convert(self, val):
 				doc = self.object.Document
 				return doc.getMediaByUUID(val)
@@ -78,7 +89,9 @@ class PropertyObject(PropertyBase):
 		def setValue(self, val):
 				super(PropertyObject,self).setValue(val)
 
-
+		def toJSON(self):
+			return self.save()
+		
 		def convert(self,val):
 				doc = self.object.Document
 				return doc.getObjectByUUID(val)
@@ -104,6 +117,8 @@ class PropertyTime(PropertyBase):
 								"second":val.second,
 						}
 				return super().getValue(isSave)
+		def toJSON(self):
+			return self.save()
 		
 main.add(PropertyTime)
 
@@ -125,6 +140,8 @@ class PropertyVector(PropertyBase):
 										return [v.toJSON() for v in val]
 								return val.toJSON()
 				return super().getValue(isSave)
+		def toJSON(self):
+			return self.save()
 		
 main.add(PropertyVector,True)
 
@@ -146,5 +163,6 @@ class PropertyColor(PropertyBase):
 					return [v.toJSON() for v in val]
 				return val.toJSON()
 		return super().getValue(isSave)
-
+	def toJSON(self):
+		return self.save()
 main.add(PropertyColor,True)

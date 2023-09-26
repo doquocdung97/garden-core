@@ -7,6 +7,7 @@ import time,threading,schedule
 from common import loggerHelper,check_and_create_folder_log,createAttribute
 from base.document import _MainDocument
 from zipfile import ZipFile
+from .config import _Config
 class Command:
 	def Parameter(self):
 		"""
@@ -25,7 +26,7 @@ class Command:
 	
 	def Activated(self,**arg)->any:
 		pass
-class __MainCommand:
+class _MainCommand:
 	def __init__(self) -> None:
 		self.__commands = {}
 
@@ -56,7 +57,7 @@ class __MainCommand:
 			return self.__commands.get(name)
 		return self.__commands
 
-class __MainSchedule:
+class _MainSchedule:
 	def __init__(self) -> None:
 		self.__schedules = {}
 
@@ -80,12 +81,37 @@ class __MainSchedule:
 class __Core():
 	def __init__(self):
 		self.__documents = {}
-		self.cmd = None
-		self.schedule = None
+		self.cmd = _MainCommand()
+		self.schedule = _MainSchedule()
 		self.__log = loggerHelper("Core")
-
+		self.config = _Config()
+		if self.config.get("HandleAutoSave",True):
+			self.job_auto_save = schedule.every(self.config.get("AutoSave",1)).minutes.do(self.__handle_auto_save)
 		#check and create folder logs
 		check_and_create_folder_log()
+
+	def init(self):
+		if not hasattr(self,"mod"):
+			import mod
+			self.mod = mod.modules
+			docs = self.config.get("AutoOpen",[])
+			for doc in docs:
+				self.restore(doc)
+
+		# def loop():
+	# function to print square of given num
+	# while True:
+	# 	Core.loop()
+	# 	time.sleep(1)
+		loopcore = threading.Thread(target=self.loop,daemon=True)
+		loopcore.start()
+
+
+	def __handle_auto_save(self):
+		for name in self.get():
+			doc = self.get(name)
+			if doc:
+				doc.AutoSave()
 
 	def get(self, name: str = None) -> dict| Document | None:
 		if not name:
@@ -109,6 +135,8 @@ class __Core():
 		temp_dir = os.path.join(tempfile.gettempdir(),__project__,str(uuid.uuid4()))
 		if not os.path.exists(temp_dir):
 			os.makedirs(temp_dir)
+		if not os.path.exists(pathfile):
+			return
 		with ZipFile(pathfile,'r') as zip:
 			zip.extractall(temp_dir)
 			with zip.open("data.json") as f:  
@@ -136,8 +164,10 @@ class __Core():
 		pass
 			
 	def loop(self):
-		schedule.run_pending()
-		pass
+		while True:
+			schedule.run_pending()
+			time.sleep(1)
+		#pass
 		# try:
 		#     if self.__documents:
 		#         for name in self.__documents:
@@ -158,16 +188,14 @@ class __Core():
 			delattr(self,name)
 		except Exception as ex:
 			self.__log.error(f"delete error: {ex}")
+	def exit(self):
+		self.config.save()
+		docs = self.get()
+		for name in docs:
+			self.delete(name)
+		if self.job_auto_save:
+			schedule.cancel_job(self.job_auto_save)
+
 
 Core = __Core()
-def loop():
-	# function to print square of given num
-	while True:
-		Core.loop()
-		time.sleep(1)
-loopcore = threading.Thread(target=loop,daemon=True)
-loopcore.start()
-Core.cmd = __MainCommand()
-Core.schedule = __MainSchedule()
-import mod
-Core.mod = mod.modules
+Core.init()

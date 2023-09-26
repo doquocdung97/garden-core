@@ -30,14 +30,16 @@ from django.views.decorators.csrf import csrf_exempt
 
 def test(request):
 	
-	document = Core.get('test')
+	document = Core.get('testdemo')
 	if(not document):
-		document = Core.create("Document","test")
+		document = Core.create("Document","testdemo")
 		document.Label = "test demo"
-		media = document.addMedia('./requirements.txt',"label requirement")
+		media = document.addMedia('./README.md',"label requirement")
 		media1 = document.addMedia('./install.bat',"install")
 		obj = document.addObject('ObjectBase',"Furture")
 		obj.Label = "Furture_1 demo test"
+		Furture_1 = document.addObject('ObjectSchedule',"Furture")
+
 		Furture_2 = document.addObject('ObjectSerial',"Furture")
 		Furture_2.Label = "demo test"
 		obj.addProperty("PropertyStrings","Texts")
@@ -65,7 +67,7 @@ def test(request):
 		"document":document.toJSON()
 	}
 	return JsonResponse(data)
-test(None)
+# test(None)
 def update(request):
 	time = request.GET.get('time', None)
 	document = Core.get('test')
@@ -90,12 +92,13 @@ def command(request):
 		"result":e
 		})
 def save(request):
-	# path = os.path.abspath("./backup")
+	name = request.GET.get('name', "test.zip")
+	path = os.path.join("./backup",name)
 	# file_name = "data.json"
-	doc = Core.get("test")
+	doc = Core.get("testdemo")
 	data = {}
 	if doc:
-		data = doc.save()
+		data = doc.saveAs(os.path.abspath(path))
 		# try:
 		# 	with open(os.path.join(path,file_name), "w") as json_file:
 		# 		# Write the data to the file in JSON format

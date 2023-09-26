@@ -24,10 +24,23 @@ class ObjectBase(HanlderProperty):
 		if not "Label" in self.propertys:
 			self.addProperty('PropertyString','Label')
 	
-	def save(self,reader):
+	def save(self):
 		propertys = []
 		for property in self.propertys:
-			dataproperty = self.__dict__[property].save(reader)
+			dataproperty = self.__dict__[property].save()
+			propertys.append(dataproperty)
+
+		return {
+			'uuid':self.UUID,
+			'type':self.__class__.__name__,
+			'name':self.Name, 
+			'propertys':propertys
+		}
+	
+	def toJSON(self):
+		propertys = []
+		for property in self.propertys:
+			dataproperty = self.__dict__[property].toJSON()
 			propertys.append(dataproperty)
 
 		return {
@@ -38,10 +51,8 @@ class ObjectBase(HanlderProperty):
 		}
 		
 	def restore(self,reader):
-		for property in reader["propertys"]:
-			self.addProperty(property['type'],property['name'],property['group'],property['tip'],property['status'])
-			if property['name'] in self.propertys:
-				self.__dict__[property['name']].restore(property)
+		self.restoreProperty(reader["propertys"])
+
 	
 	def IsChange(self):
 		return self.__isChange

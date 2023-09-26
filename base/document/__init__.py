@@ -7,15 +7,18 @@ import uuid,tempfile,os,json
 from core._version import __project__, __version__
 from ..media import Media
 from zipfile import ZipFile
-
+from constants import VARIATIONS
+from common import group_duplicates
 class Document(HanlderProperty):
 	def __init__(self):
 		super(Document,self).__init__()
 		self.__isChange = False
+		self.__isBackup = False
 		self.__objects = []
 		self.__historys = []
 		self.__medias:list[Media] = []
 		self.__filename = None
+		self.__file_name_backup = None
 		self.__isTransaction = False
 		self.UUID = str(uuid.uuid4())
 		self.__name = str()
@@ -23,7 +26,7 @@ class Document(HanlderProperty):
 
 	def init(self):
 		self.__log = loggerHelper(str(self))
-		self.__isChange = True
+		# self.__set_change(True)
 	@property
 	def Name(self):
 		return self.__name
@@ -38,6 +41,12 @@ class Document(HanlderProperty):
 	def setProperties(self):
 		if not "Label" in self.propertys:
 			self.addProperty('PropertyString','Label')
+		if not "AutoOpen" in self.propertys:
+			self.addProperty('PropertyBool','AutoOpen')
+			self.AutoOpen = True
+		if not "FileName" in self.propertys:
+			self.addProperty('PropertyString','FileName')
+
 	@property
 	def TempDir(self):
 		tempdir = self.__tempdir
@@ -80,7 +89,7 @@ class Document(HanlderProperty):
 			object.Name = name
 			self.__dict__[name] = object
 			self.__objects.append(object)
-			self.__isChange = True
+			self.__set_change(True)
 			object.init()
 			return object
 		return None
@@ -94,7 +103,7 @@ class Document(HanlderProperty):
 			if name:
 				media.Name = name
 			self.__medias.append(media)
-			self.__isChange = True
+			self.__set_change(True)
 			return media
 	
 	def getMediaByName(self,name:str):
@@ -111,41 +120,107 @@ class Document(HanlderProperty):
 	
 	def isChange(self):
 		return self.__isChange
-
-	@property
-	def FileName(self):
-		# return self.__filename
-		return f"{self.__name}.zip"
 	
-	@FileName.setter
-	def FileName(self,val):
-		self.__filename = val
+	def __set_change(self,status:bool):
+		self.__isChange = status
+		self.__isBackup = status
 
+	# @property
+	# def FileName(self):
+	# 	# return self.__filename
+	# 	return f"{self.__name}.zip"
+	
+	# @FileName.setter
+	# def FileName(self,val):
+	# 	self.__filename = val
+	def saveAs(self,filename = None):
+		self.FileName = filename
+		return self.save()
+	
 	def save(self):
+		if not self.FileName:
+			raise ValueError(f"save document error: FileName not found")
+		data = self.__handle_save(self.FileName)
+		from core import Core
+		docs = Core.config.get("AutoOpen",[])
+		if self.AutoOpen:
+			docs.append(self.FileName)
+			Core.config.set("AutoOpen",group_duplicates(docs))
+		return data
+	
+	def AutoSave(self):
+		if self.__isChange and self.__isBackup:
+			path = os.path.join(tempfile.gettempdir(),__project__,VARIATIONS.FOLDER_BACKUP)
+			if not os.path.exists(path):
+				os.mkdir(path)
+			self.__file_name_backup = os.path.join(path,f"{self.Name}_{self.UUID}.zip")
+			self.__handle_save(self.__file_name_backup,True)
+			self.__isBackup = False
+		# self.__log.info(f'backup file: {self.__file_name_backup}')
+
+	def __handle_save(self,filename = None,backup = False):
+		# if not self.FileName and filename:
+		# 	self.FileName = filename
+		# elif not self.FileName and not filename:
+		# 	raise ValueError(f"save document error: FileName not found")
 		try:
-			with ZipFile(self.FileName,'w') as zf:
-				data = self.toJSON()
+			data = self.dataSave()
+			with ZipFile(filename,'w') as zf:
 				with zf.open("data.json", "w") as c:
 					c.write(json.dumps(data, indent=2).encode("utf-8"))
 				for media in self.__medias:
 					zf.write(media.PathFile,media.FileName)
 				zf.close()
-			self.__isChange = False
-			return self.toJSON()
+			if not backup:
+				self.__set_change(False)
+				if self.__file_name_backup:
+					filehelper = FileHelper(self.__file_name_backup)
+					if filehelper.isNone():
+						filehelper.delete()
+				
+			return data
 		except Exception as ex:
 			self.__log.error(f"save document error: {ex}")
+
+	def dataSave(self):
+		# if not self.FileName:
+		#     if not self.saveAs():
+		#         return
+		propertys = []
+		for property in self.propertys:
+			dataproperty = self.__dict__[property].save()
+			propertys.append(dataproperty)
+		objects = []
+		for object in self.Objects:
+			content = object.save()
+			objects.append(content)
+
+		medias = []
+		for media in self.__medias:
+			mediajson = media.toJSON()
+			medias.append(mediajson)
+		data = {
+			"name":self.Name,
+			"version":__version__,
+			"type":self.__class__.__name__,
+			'uuid':self.UUID,
+			'propertys':propertys,
+			'medias': medias,
+			'objects': objects
+		}
+		return data
+	
 	def toJSON(self):
 		# if not self.FileName:
 		#     if not self.saveAs():
 		#         return
 		propertys = []
-		reader = {'file':[]}
 		for property in self.propertys:
-			dataproperty = self.__dict__[property].save(reader)
+			dataproperty = self.__dict__[property].toJSON()
 			propertys.append(dataproperty)
 		objects = []
 		for object in self.Objects:
-			content = object.save(reader)
+			content = object.toJSON()
 			objects.append(content)
 
 		medias = []
@@ -190,7 +265,6 @@ class Document(HanlderProperty):
 				# object.restore(data)
 				self.__dict__[name] = object
 				self.__objects.append(object)
-				object.init()
 				return (object,data)
 	
 	def restore(self,render):
@@ -198,10 +272,7 @@ class Document(HanlderProperty):
 			self.__tempdir = render['tempdir']
 			self.UUID = render['uuid']
 			self.Name = render['name']
-			for property in render['propertys']:
-				self.addProperty(property['type'],property['name'],property['group'],property['tip'],property['status'])
-				if property['name'] in self.propertys:
-					self.__dict__[property['name']].restore(property)
+			self.restoreProperty(render["propertys"])
 
 			objs = []
 			for object in render['objects']:
@@ -216,10 +287,12 @@ class Document(HanlderProperty):
 
 			for obj,data in objs:
 				obj.restore(data)
+				obj.init()
 				obj.onDocumentRestoredAfter(data)
-			self.__isChange = False
+			self.__set_change(False)
 		except Exception as ex:
-			self.__log.error(f"restore document error: {ex}")
+			# self.__log.error(f"restore document error: {ex}")
+			print(f"restore document error: {ex}")
 			
 	# def restore(self):
 	#     with ZipFile(self.FileName,'r') as reader:
@@ -258,13 +331,18 @@ class Document(HanlderProperty):
 		for obj in self.Objects:
 			if obj.IsChange:
 				obj.execute()
-		self.__isChange = False
+		self.__set_change(False)
 
 	def onBeforeChange(self,prop):
 		pass
 	def onChanged(self, prop):
-		self.__isChange = True
+		self.__set_change(True)
 		pass
+
+	def onChangedObject(self,obj:ObjectBase, prop:str):
+		self.__set_change(True)
+		pass
+
 	def getObjectByName(self,name:str)->ObjectBase|None:
 		obj = self.__dict__.get(name)
 		if isinstance(obj,ObjectBase):
@@ -281,11 +359,11 @@ class Document(HanlderProperty):
 			if obj.onDelete():
 				delattr(self,obj.Name)
 				self.__objects.remove(obj)
-				self.__isChange = True
+				self.__set_change(True)
 	def deleteMedia(self,media:Media):
 		media.onDelete()
 		self.__medias.remove(media)
-		self.__isChange = True
+		self.__set_change(True)
 	def onDelete(self):
 		for index in range(len(self.__medias)):
 			media = self.__medias[0]

@@ -53,7 +53,7 @@ class ObjectSerial(ObjectBase):
 			
 	def init(self):
 		self.ser = None
-		if not self.Port:
+		if hasattr(self,"Port") and not self.Port:
 			self.Port = self.listport
 		self.IsOpen = self.__isOpen
 		super().init()
@@ -69,9 +69,11 @@ class ObjectSerial(ObjectBase):
 			self.AutoConnect = True
 
 		if not "Port" in self.propertys:
-			self.addProperty("PropertyStringEnum","Port")
+			pro = self.addProperty("PropertyStringEnum","Port")
 			self.Port = self.listport
-			self.Port = 'COM8'
+			vals = pro.getValues()
+			if len(vals) > 0:
+				self.Port = vals[0]
 
 		if not "IsOpen" in self.propertys:
 			self.addProperty("PropertyBoolView","IsOpen")

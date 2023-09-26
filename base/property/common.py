@@ -1,5 +1,6 @@
 from common import group_duplicates,createAttribute
 from  inspect import ismethod,isfunction
+
 class PropertyBase:
 		def __init__(self, obj, name, group, description, status, type,attribute):
 				self.object = obj
@@ -25,6 +26,9 @@ class PropertyBase:
 								self.object.onBeforeChange(self.__Name)
 								self.setValue(val)
 								self.object.onChanged(self.__Name)
+								from base.object import ObjectBase
+								if isinstance(self.object,ObjectBase):
+									self.object.Document.onChangedObject(self.object,self.__Name)
 								# self.object.setChange(True)
 				else:
 						raise ValueError('not value type')
@@ -32,15 +36,28 @@ class PropertyBase:
 		def getType(self):
 				return self.__class__.__name__
 
-		def save(self, reader=None):
+		def save(self):
 				return {
 						'name': self.__Name,
 						'type': self.__type,
 						'value': self.getValue(True),
 						'group': self.group,
 						'description': self.description,
-						'status': self.status
+						'status': self.status,
+						'attribute':self.attribute
 				}
+		
+		def toJSON(self):
+			return {
+					'name': self.__Name,
+					'type': self.__type,
+					'value': self.getValue(),
+					'group': self.group,
+					'description': self.description,
+					'status': self.status,
+					'attribute':self.attribute
+			}
+		
 		def convert(self,val):
 				return val
 
@@ -107,13 +124,18 @@ def PropertyEnumBase(target):
 						else:
 								return False
 						
-				def save(self, reader=None):
-						data = super(PropertyEnumBase,self).save(reader)
+				def save(self):
+						data = super(PropertyEnumBase,self).save()
 						data["values"] = []
 						val = self.__Values
 						if not (ismethod(val) or isfunction(val)):
 							data["values"] = val
 						return data
+				
+				def toJSON(self):
+					data = super(PropertyEnumBase,self).save()
+					data["values"] = self.getValues()
+					return data
 				
 				def getValues(self):
 						if (ismethod(self.__Values) or isfunction(self.__Values)):
@@ -159,8 +181,8 @@ def PropertyViewBase(target):
 			else:
 				raise ValueError('value only read')
 		
-		def save(self, reader=None):
-			return super(PropertyViewBase,self).save(reader)
+		def save(self):
+			return super(PropertyViewBase,self).save()
 		
 		def getValue(self, isSave=False):
 			val = super(PropertyViewBase,self).getValue()
@@ -174,8 +196,8 @@ def PropertyViewBase(target):
 	return PropertyViewBase
 
 class PropertyParameter(PropertyBase):
-	def save(self, reader=None):
-		data =  super().save(reader)
+	def save(self):
+		data =  super().save()
 		data.pop("value")
 		return data
 
@@ -228,7 +250,7 @@ class HanlderProperty:
 		def getProperty(self,name:str):
 			property = self.__dict__.get(name)
 			return property
-		def addProperty(self,type:str,name:str,group:str = '',description:str = '',status:int = 1,attribute = None)->bool:
+		def addProperty(self,type:str,name:str,group:str = '',description:str = '',status:int = 1,attribute = None)->PropertyBase|None:
 				mainProperty = MainProperty()
 				property = mainProperty.get(type)
 				if property:
@@ -236,8 +258,15 @@ class HanlderProperty:
 						property = property(self,name,group,description,status,type,attribute)
 						self.__dict__[name] = property
 						self.__propertys.append(name)
-						return True
+						return property
 				return None
+		
+		def restoreProperty(self,reader):
+			for property in reader:
+				self.addProperty(property['type'],property['name'],property['group'],property['description'],property['status'],property['attribute'])
+				if property['name'] in self.propertys:
+					self.__dict__[property['name']].restore(property)
+					
 		
 		def checkNameInProperty(self,name:str)->bool:
 			return (name in self.__propertys)

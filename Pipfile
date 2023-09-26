@@ -15,6 +15,7 @@ ariadne-django = "*"
 django-cors-headers = "*"
 graphene-django = "*"
 pyserial = "*"
+appdata = "*"
 
 [dev-packages]
 
