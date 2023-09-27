@@ -60,7 +60,6 @@ def test(request):
 	# obj2 = document.addObject('ObjectBase',"Furture_3")
 	# document.onDelete(obj2)
 	result = Core.cmd.run('Vector2D',1,2,"")
-	print(result)
 	# main = MainProperty()
 	data = {
 		# "typeproperty":[name for name in main.get()],
@@ -124,6 +123,22 @@ def config(request):
 		"typeproperty":[name for name in main.get()],
 	}
 	return JsonResponse(data)
+
+def clone(request):
+	name = request.GET.get('name', "testdemo")
+	doc = Core.get(name)
+	data = {}
+	if doc:
+		doc = doc.clone()
+		data = doc.toJSON()
+		# try:
+		# 	with open(os.path.join(path,file_name), "w") as json_file:
+		# 		# Write the data to the file in JSON format
+		# 		json.dump(data, json_file)
+		# finally:
+		# 	json_file.close()
+	return JsonResponse(data)
+
 urlpatterns = [
 	path('admin/', admin.site.urls),
 	path('test/', test),
@@ -131,6 +146,7 @@ urlpatterns = [
 	path('command/', command),
 	path('restore/', restore),
 	path('save/', save),
+	path('clone/', clone),
 	path('config/', config),
 	path('graphql/', csrf_exempt(GraphQLView.as_view(graphiql=True,schema=schema)),name="graphql"),
 

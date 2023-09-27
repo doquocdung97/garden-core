@@ -14,7 +14,7 @@ class Document(HanlderProperty):
 		super(Document,self).__init__()
 		self.__isChange = False
 		self.__isBackup = False
-		self.__objects = []
+		self.__objects:list[ObjectBase] = []
 		self.__historys = []
 		self.__medias:list[Media] = []
 		self.__filename = None
@@ -68,11 +68,22 @@ class Document(HanlderProperty):
 	def Medias(self)->list[Media]:
 		return self.__medias
 	
-	# def close(self):
-	#     if os.path.exists(self.TempDir):
-	#         import shutil
-	#         shutil.rmtree(self.TempDir)
+	def clone(self):
+		doc = self.__class__()
+		self._cloneProperty(doc)
 
+		for media in self.__medias:
+			newmedia = doc.addMedia(media.FileName,media.Name)
+			media.setClone(newmedia)
+		newobjects = []
+		for obj in self.__objects:
+			newobj = doc.addObject(obj.__class__.__name__,obj.Name)
+			newobjects.append((obj,newobj))
+			obj.setClone(newobj)
+		for obj,newobj in newobjects:
+			obj._cloneProperty(newobj)
+		return doc
+	
 	# @attr.setter
 	# def attr(self, value):
 	#     self.__attr = value
@@ -374,6 +385,7 @@ class Document(HanlderProperty):
 
 		file = FileHelper(self.TempDir)
 		file.deleteDir()
+
 	def __repr__(self):
 		return str(f"{self.__class__.__name__}({self.Name})")
 class _MainDocument:

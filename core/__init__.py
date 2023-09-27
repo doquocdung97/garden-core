@@ -106,7 +106,6 @@ class __Core():
 		loopcore = threading.Thread(target=self.loop,daemon=True)
 		loopcore.start()
 
-
 	def __handle_auto_save(self):
 		for name in self.get():
 			doc = self.get(name)
@@ -131,6 +130,7 @@ class __Core():
 			self.__dict__[name] = doc
 			return self.__documents.get(name)
 		return None
+
 	def restore(self,pathfile:str)->Document|None:
 		temp_dir = os.path.join(tempfile.gettempdir(),__project__,str(uuid.uuid4()))
 		if not os.path.exists(temp_dir):
@@ -156,6 +156,7 @@ class __Core():
 					self.__documents[name] = doc
 					self.__dict__[name] = doc
 					return doc
+
 	def __checkHasDocument(self,uuid:str):
 		for name in self.__documents:
 			doc = self.get(name)
@@ -185,9 +186,11 @@ class __Core():
 			doc = self.get(name)
 			if doc:
 				doc.onDelete()
-			delattr(self,name)
+				# delattr(self,name)
+				self.__documents.pop(name)
 		except Exception as ex:
 			self.__log.error(f"delete error: {ex}")
+
 	def exit(self):
 		self.config.save()
 		docs = self.get()

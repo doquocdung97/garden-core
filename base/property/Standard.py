@@ -21,7 +21,7 @@ class PropertyInteger(PropertyBase):
 				return 0
 		def checkValue(self,val):
 				return isinstance(val,int)
-main.add(PropertyInteger,True,True)
+main.add(PropertyInteger,True,True,isParameter=True)
 
 class PropertyBool(PropertyBase):
 		def valueDefault(self):
@@ -71,6 +71,15 @@ class PropertyMedia(PropertyBase):
 
 		def toString(self):
 				return self.__Value
+		
+		def clone(self):
+			pro = super().clone()
+			if isinstance(pro.Value,list):
+				pro.Value = [v.Clone for v in pro.Value]
+			else:
+				pro.Value = pro.Value.Clone
+			return pro
+		
 main.add(PropertyMedia,True)
 
 class PropertyObject(PropertyBase):
@@ -95,6 +104,14 @@ class PropertyObject(PropertyBase):
 		def convert(self,val):
 				doc = self.object.Document
 				return doc.getObjectByUUID(val)
+		
+		def clone(self):
+			pro = super().clone()
+			if isinstance(pro.Value,list):
+				pro.Value = [v.Clone for v in pro.Value]
+			else:
+				pro.Value = pro.Value.Clone
+			return pro
 
 main.add(PropertyObject,True)
 from datetime import time

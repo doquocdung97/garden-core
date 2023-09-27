@@ -81,7 +81,13 @@ class PropertyBase:
 		def __repr__(self):
 				return str(f'{self.__class__.__name__}({self.toString()})')
 		#     return self
-
+		def clone(self):
+			pro = self.__class__(self.object,self.__Name,self.group,self.description,self.status,self.__type,self.attribute)
+			try:
+				pro.Value = self.Value
+			except:
+				pass
+			return pro
 
 def PropertyListBase(target):
 		name = f'{target.__name__}s'
@@ -112,7 +118,7 @@ def PropertyEnumBase(target):
 						super().__init__(obj, name, group, description, status, type, attribute)
 						self.__Values = []
 				def checkValue(self,val):
-						if ismethod(val) or isfunction(val):
+						if ismethod(val) and self.object.__getattribute__(val.__func__.__name__) :
 							return True
 						elif isinstance(val,list) and val != self.getValues():
 								for v in val:
@@ -126,10 +132,8 @@ def PropertyEnumBase(target):
 						
 				def save(self):
 						data = super(PropertyEnumBase,self).save()
-						data["values"] = []
 						val = self.__Values
-						if not (ismethod(val) or isfunction(val)):
-							data["values"] = val
+						data["values"] = val
 						return data
 				
 				def toJSON(self):
@@ -138,13 +142,13 @@ def PropertyEnumBase(target):
 					return data
 				
 				def getValues(self):
-						if (ismethod(self.__Values) or isfunction(self.__Values)):
-							return self.__Values(self)
+						if isinstance(self.__Values,str):
+							return self.object.__getattribute__(self.__Values)(self)
 						return self.__Values
 				
 				def setValue(self, val):
 						if ismethod(val) or isfunction(val):
-							self.__Values = val
+							self.__Values = val.__func__.__name__
 							super(PropertyEnumBase,self).setValue(None)
 						elif isinstance(val,list):
 								self.__Values = group_duplicates(val)
@@ -160,6 +164,12 @@ def PropertyEnumBase(target):
 				def restore(self, reader=None):
 						self.setValue(reader['value'])
 						self.__Values = reader['values']
+
+				def clone(self):
+					pro = super(PropertyEnumBase,self).clone()
+					pro.__Values = self.__Values
+					pro.Value = self.Value
+					return pro
 
 		return PropertyEnumBase
 
@@ -195,11 +205,17 @@ def PropertyViewBase(target):
 		
 	return PropertyViewBase
 
-class PropertyParameter(PropertyBase):
-	def save(self):
-		data =  super().save()
-		data.pop("value")
-		return data
+def PropertyParameterBase(target):
+	name = f'{target.__name__}Parameter'
+	class PropertyParameterBase(target):
+		def save(self):
+			data =  super().save()
+			data.pop("value")
+			return data
+		def __repr__(self):
+			return str(f'{name}({self.toString()})')
+		
+	return PropertyParameterBase
 
 class MainProperty():
 		instance = None
@@ -219,7 +235,7 @@ class MainProperty():
 		# def get(self)->list[PropertyBase]:
 		#     return self.properties
 		
-		def add(self, property: type,isList:bool = False, isEnum:bool = False, isView:bool = False) -> bool:
+		def add(self, property: type,isList:bool = False, isEnum:bool = False, isView:bool = False, isParameter:bool = False) -> bool:
 				name = property.__name__
 				if issubclass(property, PropertyBase):
 						datas = [
@@ -231,6 +247,8 @@ class MainProperty():
 								datas.append((f'{name}Enum',PropertyEnumBase(property)))
 						if isView:
 							datas.append((f'{name}View',PropertyViewBase(property)))
+						if isParameter:
+							datas.append((f'{name}Parameter',PropertyParameterBase(property)))
 						for item in datas:
 								if not item[0] in self.properties:
 										self.properties[item[0]] = item[1]
@@ -247,9 +265,12 @@ class HanlderProperty:
 		@property
 		def propertys(self)->list[str]:
 			return self.__propertys
-		def getProperty(self,name:str):
-			property = self.__dict__.get(name)
-			return property
+		
+		def getProperty(self,name:str)->PropertyBase|None:
+			if name in self.__propertys:
+				property = self.__dict__.get(name)
+				return property
+		
 		def addProperty(self,type:str,name:str,group:str = '',description:str = '',status:int = 1,attribute = None)->PropertyBase|None:
 				mainProperty = MainProperty()
 				property = mainProperty.get(type)
@@ -285,3 +306,11 @@ class HanlderProperty:
 			except:
 				pass
 			return super(HanlderProperty,self).__getattribute__(name)
+		
+		def _cloneProperty(self,target):
+			for name in self.__propertys:
+				pro = self.__dict__[name]
+				pro = pro.clone()
+				target.__dict__[name] = pro
+				if not name in target.__propertys:
+					target.__propertys.append(name)

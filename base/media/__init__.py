@@ -4,6 +4,7 @@ import uuid
 from os import path
 
 class Media:
+	
 	def __init__(self,doc, pathfile,str_uuid:str = None) -> None:
 		self.__pathfile = pathfile
 		self.__document = doc
@@ -11,6 +12,7 @@ class Media:
 		self.Name = self.__helper.toFileName()
 		# self.__type = self.__helper.toFileType()
 		self.__data = None
+		self.__clone = None
 		if not str_uuid:
 			self.__uuid = str(uuid.uuid4())
 		else:
@@ -18,6 +20,7 @@ class Media:
 	@property
 	def FileName(self):
 		return self.__helper.toFileName(True)
+	
 	@property
 	def UUID(self):
 		return self.__uuid
@@ -69,3 +72,13 @@ class Media:
 	def __repr__(self):
 			# val = super(PropertyListBase,self).toString()
 			return str(f'{self.__class__.__name__}({self.__name})')
+
+	@property
+	def Clone(self):
+		return self.__clone
+	
+	def setClone(self,val):
+		if isinstance(val,Media):
+			self.__clone = val
+		else:
+			raise ValueError("val not type")

@@ -53,8 +53,7 @@ class ObjectSerial(ObjectBase):
 			
 	def init(self):
 		self.ser = None
-		if hasattr(self,"Port") and not self.Port:
-			self.Port = self.listport
+		# self.Port = self.listport
 		self.IsOpen = self.__isOpen
 		super().init()
 		self.__checkConnect()
@@ -99,12 +98,15 @@ class ObjectSerial(ObjectBase):
 
 	def connect(self):
 		self.disConnect()
-		self.ser = serial.Serial(port=self.Port,\
+		try:
+			self.ser = serial.Serial(port=self.Port,\
 														baudrate=self.BaudRate,\
 														parity=serial.PARITY_NONE,\
 														stopbits=serial.STOPBITS_ONE,\
 														bytesize=serial.EIGHTBITS,\
 														timeout=self.Timeout)
+		except Exception as ex:
+			self.logger.error(f"connect port {self.Port} error {ex}")
 		return self.ser
 	
 	def disConnect(self):
