@@ -33,6 +33,10 @@ def test(request):
 	document = Core.get('testdemo')
 	if(not document):
 		document = Core.create("Document","testdemo")
+		document.Parameter.addProperty("PropertyFloatEnum","ParameterFloat")
+		document.Parameter.ParameterFloat = [1.1,2.0,10]
+		document.Parameter.ParameterFloat = 10
+
 		document.Label = "test demo"
 		media = document.addMedia('./README.md',"label requirement")
 		media1 = document.addMedia('./install.bat',"install")

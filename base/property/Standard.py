@@ -21,7 +21,7 @@ class PropertyInteger(PropertyBase):
 				return 0
 		def checkValue(self,val):
 				return isinstance(val,int)
-main.add(PropertyInteger,True,True,isParameter=True)
+main.add(PropertyInteger,True,True)
 
 class PropertyBool(PropertyBase):
 		def valueDefault(self):

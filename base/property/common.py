@@ -205,18 +205,6 @@ def PropertyViewBase(target):
 		
 	return PropertyViewBase
 
-def PropertyParameterBase(target):
-	name = f'{target.__name__}Parameter'
-	class PropertyParameterBase(target):
-		def save(self):
-			data =  super().save()
-			data.pop("value")
-			return data
-		def __repr__(self):
-			return str(f'{name}({self.toString()})')
-		
-	return PropertyParameterBase
-
 class MainProperty():
 		instance = None
 		properties = {}
@@ -235,7 +223,7 @@ class MainProperty():
 		# def get(self)->list[PropertyBase]:
 		#     return self.properties
 		
-		def add(self, property: type,isList:bool = False, isEnum:bool = False, isView:bool = False, isParameter:bool = False) -> bool:
+		def add(self, property: type,isList:bool = False, isEnum:bool = False, isView:bool = False) -> bool:
 				name = property.__name__
 				if issubclass(property, PropertyBase):
 						datas = [
@@ -247,8 +235,6 @@ class MainProperty():
 								datas.append((f'{name}Enum',PropertyEnumBase(property)))
 						if isView:
 							datas.append((f'{name}View',PropertyViewBase(property)))
-						if isParameter:
-							datas.append((f'{name}Parameter',PropertyParameterBase(property)))
 						for item in datas:
 								if not item[0] in self.properties:
 										self.properties[item[0]] = item[1]
@@ -287,8 +273,7 @@ class HanlderProperty:
 				self.addProperty(property['type'],property['name'],property['group'],property['description'],property['status'],property['attribute'])
 				if property['name'] in self.propertys:
 					self.__dict__[property['name']].restore(property)
-					
-		
+
 		def checkNameInProperty(self,name:str)->bool:
 			return (name in self.__propertys)
 		
@@ -314,3 +299,9 @@ class HanlderProperty:
 				target.__dict__[name] = pro
 				if not name in target.__propertys:
 					target.__propertys.append(name)
+
+		def onBeforeChange(self,prop):
+			pass
+		
+		def onChanged(self, prop):
+			pass

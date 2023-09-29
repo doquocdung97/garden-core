@@ -9,6 +9,7 @@ from ..media import Media
 from zipfile import ZipFile
 from constants import VARIATIONS
 from common import group_duplicates
+from ..parameter import Parameter
 class Document(HanlderProperty):
 	def __init__(self):
 		super(Document,self).__init__()
@@ -23,6 +24,7 @@ class Document(HanlderProperty):
 		self.UUID = str(uuid.uuid4())
 		self.__name = str()
 		self.__tempdir = os.path.join(tempfile.gettempdir(),__project__,str(uuid.uuid4()))
+		self.Parameter = Parameter()
 
 	def init(self):
 		self.__log = loggerHelper(str(self))
@@ -225,6 +227,11 @@ class Document(HanlderProperty):
 		# if not self.FileName:
 		#     if not self.saveAs():
 		#         return
+		parameters = []
+		for property in self.Parameter.propertys:
+			dataproperty = self.Parameter.__dict__[property].toJSON()
+			parameters.append(dataproperty)
+			
 		propertys = []
 		for property in self.propertys:
 			dataproperty = self.__dict__[property].toJSON()
@@ -243,6 +250,7 @@ class Document(HanlderProperty):
 			"version":__version__,
 			"type":self.__class__.__name__,
 			'uuid':self.UUID,
+			'parameter':parameters,
 			'propertys':propertys,
 			'medias': medias,
 			'objects': objects
