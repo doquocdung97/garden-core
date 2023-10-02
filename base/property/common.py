@@ -1,6 +1,7 @@
 from common import group_duplicates,createAttribute
 from  inspect import ismethod,isfunction
 
+
 class PropertyBase:
 		def __init__(self, obj, name, group, description, status, type,attribute):
 				self.object = obj
@@ -11,43 +12,67 @@ class PropertyBase:
 				self.status = status
 				self.attribute = attribute
 				self.__Value = self.valueDefault()
+				self.__parameter = None
 
 		def valueDefault(self):
 				return None
-
+		
+		def getName(self):
+			return self.__Name
+		
 		@property
 		def Value(self):
-				return self.getValue()
+			return self.getValue()
 
 		@Value.setter
-		def Value(self, val):
+		def Value(self, value):
+				val = value
+				from ..parameter import PropertyParameter
+				if isinstance(val,PropertyParameter):
+					val = val.getValue()
 				if self.checkValue(val):
+						if isinstance(value,PropertyParameter):
+							self.__parameter = value
+							value.addInList(self)
 						if self.getValue() != val:
 								self.object.onBeforeChange(self.__Name)
 								self.setValue(val)
-								self.object.onChanged(self.__Name)
-								from base.object import ObjectBase
-								if isinstance(self.object,ObjectBase):
-									self.object.Document.onChangedObject(self.object,self.__Name)
+								self.onChange()
 								# self.object.setChange(True)
 				else:
 						raise ValueError('not value type')
+		def onChange(self):
+			self.object.onChanged(self.__Name)
+			from base.object import ObjectBase
+			if isinstance(self.object,ObjectBase):
+				self.object.Document.onChangedObject(self.object,self.__Name)
 
 		def getType(self):
 				return self.__class__.__name__
 
 		def save(self):
-				return {
-						'name': self.__Name,
-						'type': self.__type,
-						'value': self.getValue(True),
-						'group': self.group,
-						'description': self.description,
-						'status': self.status,
-						'attribute':self.attribute
-				}
+			data = {
+					'name': self.__Name,
+					'type': self.__type,
+					'group': self.group,
+					'description': self.description,
+					'status': self.status,
+					'attribute':self.attribute
+			}
+
+			parameter = self.__parameter
+			if parameter:
+				data["parameter"] = parameter.toString()
+			else:
+				data["value"] = self.getValue(True)
+
+			return data
 		
 		def toJSON(self):
+			parameter = self.__parameter
+			parameter_str = str()
+			if parameter:
+				parameter_str = parameter.toString()
 			return {
 					'name': self.__Name,
 					'type': self.__type,
@@ -55,18 +80,31 @@ class PropertyBase:
 					'group': self.group,
 					'description': self.description,
 					'status': self.status,
-					'attribute':self.attribute
+					'attribute':self.attribute,
+					'parameter':parameter_str
 			}
 		
 		def convert(self,val):
 				return val
 
-		def restore(self, reader=None):
-				val = self.convert(reader['value'])
+		def restore(self, reader:dict):
+				val = None
+				if reader.get('parameter'):
+					try:
+						from base.object import ObjectBase
+						if isinstance(self.object,ObjectBase):
+							self.__parameter = eval(f"self.object.Document.{reader['parameter']}")
+							val = self.__parameter.getValue()
+					except:
+						pass
+				else:
+					val = self.convert(reader['value'])
 				self.setValue(val)
 				pass
 
 		def getValue(self, isSave=False):
+				if self.__parameter:
+					return self.__parameter.getValue(isSave)
 				return self.__Value
 
 		def checkValue(self, val):
@@ -83,6 +121,7 @@ class PropertyBase:
 		#     return self
 		def clone(self):
 			pro = self.__class__(self.object,self.__Name,self.group,self.description,self.status,self.__type,self.attribute)
+			pro.__parameter = self.__parameter
 			try:
 				pro.Value = self.Value
 			except:
@@ -167,8 +206,14 @@ def PropertyEnumBase(target):
 
 				def clone(self):
 					pro = super(PropertyEnumBase,self).clone()
-					pro.__Values = self.__Values
-					pro.Value = self.Value
+					if isinstance(pro.__Values,str):
+						pro.__Values = self.object.__getattribute__(self.__Values)
+					else:
+						pro.__Values = self.__Values
+					if self.Value:
+						pro.Value = self.Value
+					else:
+						pro.Value = pro.valueDefault()
 					return pro
 
 		return PropertyEnumBase
@@ -270,9 +315,26 @@ class HanlderProperty:
 		
 		def restoreProperty(self,reader):
 			for property in reader:
-				self.addProperty(property['type'],property['name'],property['group'],property['description'],property['status'],property['attribute'])
-				if property['name'] in self.propertys:
-					self.__dict__[property['name']].restore(property)
+				try:
+					self.addProperty(property['type'],property['name'],property['group'],property['description'],property['status'],property['attribute'])
+					if property['name'] in self.propertys:
+						self.__dict__[property['name']].restore(property)
+				except:
+					pass
+
+		def saveProperty(self):
+			parameters = []
+			for property in self.__propertys:
+				dataproperty = self.__dict__[property].save()
+				parameters.append(dataproperty)
+			return parameters
+
+		def toJSONProperty(self):
+			parameters = []
+			for property in self.__propertys:
+				dataproperty = self.__dict__[property].toJSON()
+				parameters.append(dataproperty)
+			return parameters
 
 		def checkNameInProperty(self,name:str)->bool:
 			return (name in self.__propertys)
@@ -294,11 +356,14 @@ class HanlderProperty:
 		
 		def _cloneProperty(self,target):
 			for name in self.__propertys:
-				pro = self.__dict__[name]
-				pro = pro.clone()
-				target.__dict__[name] = pro
-				if not name in target.__propertys:
-					target.__propertys.append(name)
+				try:
+					pro = self.__dict__[name]
+					pro = pro.clone()
+					target.__dict__[name] = pro
+					if not name in target.__propertys:
+						target.__propertys.append(name)
+				except:
+					pass
 
 		def onBeforeChange(self,prop):
 			pass

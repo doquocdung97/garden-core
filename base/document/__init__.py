@@ -73,7 +73,7 @@ class Document(HanlderProperty):
 	def clone(self):
 		doc = self.__class__()
 		self._cloneProperty(doc)
-
+		self.Parameter._cloneProperty(doc.Parameter)
 		for media in self.__medias:
 			newmedia = doc.addMedia(media.FileName,media.Name)
 			media.setClone(newmedia)
@@ -217,6 +217,7 @@ class Document(HanlderProperty):
 			"version":__version__,
 			"type":self.__class__.__name__,
 			'uuid':self.UUID,
+			'parameter':self.Parameter.save(),
 			'propertys':propertys,
 			'medias': medias,
 			'objects': objects
@@ -227,11 +228,7 @@ class Document(HanlderProperty):
 		# if not self.FileName:
 		#     if not self.saveAs():
 		#         return
-		parameters = []
-		for property in self.Parameter.propertys:
-			dataproperty = self.Parameter.__dict__[property].toJSON()
-			parameters.append(dataproperty)
-			
+		
 		propertys = []
 		for property in self.propertys:
 			dataproperty = self.__dict__[property].toJSON()
@@ -250,27 +247,12 @@ class Document(HanlderProperty):
 			"version":__version__,
 			"type":self.__class__.__name__,
 			'uuid':self.UUID,
-			'parameter':parameters,
+			'parameter':self.Parameter.toJSON(),
 			'propertys':propertys,
 			'medias': medias,
 			'objects': objects
 		}
 		return data
-		# with ZipFile(self.FileName,'w') as zf:
-		#     with zf.open("data.json", "w") as c:
-		#         c.write(json.dumps(data, indent=2).encode("utf-8"))
-		#     for file in reader['file']:
-		#         zf.write(file,os.path.basename(file))
-		#     zf.close()
-		# pass
-	
-	# def saveAs(self,filename = None):
-	#     if not filename:
-	#         fname = QFileDialog.getSaveFileName(Gui.getMainWindow(), 'save file', '',"Image files (*.zip)")
-	#         filename = fname[0]
-	#     if not filename:
-	#         return False
-	#     self.FileName = filename
 
 	def __restoreObject(self,data):
 		type = data['type']
@@ -291,6 +273,7 @@ class Document(HanlderProperty):
 			self.__tempdir = render['tempdir']
 			self.UUID = render['uuid']
 			self.Name = render['name']
+			self.Parameter.restoreProperty(render['parameter'])
 			self.restoreProperty(render["propertys"])
 
 			objs = []
@@ -312,34 +295,6 @@ class Document(HanlderProperty):
 		except Exception as ex:
 			# self.__log.error(f"restore document error: {ex}")
 			print(f"restore document error: {ex}")
-			
-	# def restore(self):
-	#     with ZipFile(self.FileName,'r') as reader:
-	#         reader.dataRestore = None
-	#         files = reader.namelist()
-	#         if 'data.json' in files:
-	#             files.remove('data.json')
-	#             b_data = reader.read('data.json')
-	#             jdata = json.loads(b_data)
-	#             for property in jdata['propertys']:
-	#                 self.addProperty(property['type'],property['name'],property['group'],property['tip'],property['status'])
-	#                 if property['name'] in self.__propertys:
-	#                     reader.dataRestore = property
-	#                     self.__dict__[property['name']].restore(reader)
-
-	#             for object in jdata['objects']:
-	#                 obj = self.addObject(object['type'],object['name'])
-	#                 if obj:
-	#                     reader.dataRestore = object['propertys']
-	#                     obj.restore(reader)
-	#                 pass
-	#             for filename in files:
-	#                 file = reader.read(filename)
-	#                 filename = os.path.join(self.TempDir,filename)
-	#                 f = open(filename, 'wb')
-	#                 f.write(file)
-	#                 f.close()
-	#         reader.close()
 
 	def __setattr__(self, name, value):
 		if hasattr(self,name) and self.__getattribute__(name) in self.__objects:

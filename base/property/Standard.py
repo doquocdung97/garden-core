@@ -183,3 +183,33 @@ class PropertyColor(PropertyBase):
 	def toJSON(self):
 		return self.save()
 main.add(PropertyColor,True)
+
+class PropertyDocument(PropertyBase):
+	
+	def checkValue(self,val:any):
+		from base.document import Document
+		return isinstance(val,Document)
+	
+	def convert(self, val):
+		from core import Core
+
+		doc = Core.openTemplate(val)
+		return doc
+
+	def getValue(self, isSave=False):
+		val = super().getValue(isSave)
+		if isSave and val:
+			return val.FileName
+		return val
+	
+	def setValue(self, val):
+		return super().setValue(val)
+	
+	def toJSON(self):
+		data = super().toJSON()
+		val = super().getValue()
+		if val:
+			data["value"] = val.toJSON()
+		return data
+	
+main.add(PropertyDocument)

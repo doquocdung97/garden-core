@@ -85,7 +85,7 @@ class ObjectBase(HanlderProperty):
 		self.__isChange = False
 
 	def init(self):
-		self.logger = loggerHelper(f"Object({self.Name})")
+		self.logger = loggerHelper(f"Object({self.Name} [{self.UUID}])")
 		# self.__isChange = True
 		self.__init = True
 		

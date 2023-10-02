@@ -43,6 +43,8 @@ def test(request):
 		obj = document.addObject('ObjectBase',"Furture")
 		obj.Label = "Furture_1 demo test"
 		Furture_1 = document.addObject('ObjectSchedule',"Furture")
+		Furture_1.addProperty("PropertyFloat","Datas")
+		Furture_1.Datas = document.Parameter.ParameterFloat
 
 		Furture_2 = document.addObject('ObjectSerial',"Furture")
 		Furture_2.Label = "demo test"
@@ -50,13 +52,18 @@ def test(request):
 		obj.Texts = ["1","2","3"]
 
 		obj.addProperty("PropertyObject","base")
-		obj.addProperty("PropertyFloatEnum","Datas")
+		obj.addProperty("PropertyFloat","Datas")
 		obj.addProperty("PropertyVectors","Vector")
 		obj.addProperty("PropertyMedias","Medias","group","this is list medias",2)
 		obj.addProperty("PropertyColor","Color","group","this is Color",2)
+		obj.addProperty("PropertyDocument","Template")
+		doctestdemo = Core.get('test')
+		if doctestdemo:
+			doctestdemo = doctestdemo.clone()
+			obj.Template = doctestdemo
 		obj.Color = Color(1,20,40)
 		obj.Vector = [Vector(10,10,10),Vector(10,20,10),Vector(10,30,0.10)]
-		obj.Datas = [1.1,2.0,0.0]
+		obj.Datas = document.Parameter.ParameterFloat
 		obj.base = Furture_2
 		obj.Medias = [media,media1]
 		

@@ -132,6 +132,12 @@ class __Core():
 		return None
 
 	def restore(self,pathfile:str)->Document|None:
+		return self.__openfile(pathfile)
+
+	def openTemplate(self,pathfile:str)->Document|None:
+		return self.__openfile(pathfile,False)
+	
+	def __openfile(self,pathfile:str,append = True)->Document|None:
 		temp_dir = os.path.join(tempfile.gettempdir(),__project__,str(uuid.uuid4()))
 		if not os.path.exists(temp_dir):
 			os.makedirs(temp_dir)
@@ -153,8 +159,9 @@ class __Core():
 					doc = DocClass()
 					doc.restore(data)
 					doc.init()
-					self.__documents[name] = doc
-					self.__dict__[name] = doc
+					if append:
+						self.__documents[name] = doc
+						self.__dict__[name] = doc
 					return doc
 
 	def __checkHasDocument(self,uuid:str):
@@ -194,8 +201,9 @@ class __Core():
 	def exit(self):
 		self.config.save()
 		docs = self.get()
-		for name in docs:
-			self.delete(name)
+		if docs:
+			for name in docs:
+				self.delete(name)
 		if self.job_auto_save:
 			schedule.cancel_job(self.job_auto_save)
 
