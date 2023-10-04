@@ -64,7 +64,7 @@ class ObjectSchedule(ObjectBase):
 				return super().execute()
 
 		def onChanged(self, prop):
-				# return super().onChanged(prop)
+				super().onChanged(prop)
 				if prop in ["Time","Type"]:
 						self.setJob()
 

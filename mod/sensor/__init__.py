@@ -39,5 +39,5 @@ class _Temperature(Command):
 		return "dung demo Temperature"
 
 
-Core.cmd.addCommand("WaterFlow",_WaterFlow())
-Core.cmd.addCommand("Temperature",_Temperature())
+Core.cmd.add("WaterFlow",_WaterFlow())
+Core.cmd.add("Temperature",_Temperature())

@@ -1,5 +1,6 @@
-/venv
 /logs
 /debug.env
+.env
 *.pyc
 /.vscode
+/Pipfile.lock

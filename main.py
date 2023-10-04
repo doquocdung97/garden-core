@@ -32,9 +32,9 @@ def main():
 			"available on your PYTHONPATH environment variable? Did you "
 			"forget to activate a virtual environment?"
 		) from exc
-	print("test")
 	execute_from_command_line(sys.argv)
-
+	from core import Core
+	Core.exit()
 
 if __name__ == '__main__':
 	main()

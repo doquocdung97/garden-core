@@ -1,7 +1,7 @@
 
 from typing import Any
 from base.object import ObjectBase
-from base.common import Vector
+from base.common import Vector,Color
 from .common import *
 import os
 from common import validate_time
@@ -29,7 +29,7 @@ class PropertyBool(PropertyBase):
 		
 		def checkValue(self,val):
 				return isinstance(val,bool)
-main.add(PropertyBool,True)
+main.add(PropertyBool,True,isView=True)
 
 class PropertyFloat(PropertyBase):
 		def valueDefault(self):
@@ -53,13 +53,33 @@ class PropertyMedia(PropertyBase):
 				
 		def checkValue(self,val):
 				return isinstance(val,Media)
-
+		
+		def toJSON(self):
+			data = super(PropertyMedia,self).toJSON()
+			val = super(PropertyMedia,self).getValue()
+			if val:
+				if isinstance(val,list):
+					data["value"] = [v.toJSON() for v in val]
+				else:
+					data["value"] = val.toJSON()
+			
+			return data
+			
 		def convert(self, val):
 				doc = self.object.Document
 				return doc.getMediaByUUID(val)
 
 		def toString(self):
 				return self.__Value
+		
+		def clone(self):
+			pro = super().clone()
+			if isinstance(pro.Value,list):
+				pro.Value = [v.Clone for v in pro.Value]
+			else:
+				pro.Value = pro.Value.Clone
+			return pro
+		
 main.add(PropertyMedia,True)
 
 class PropertyObject(PropertyBase):
@@ -78,10 +98,20 @@ class PropertyObject(PropertyBase):
 		def setValue(self, val):
 				super(PropertyObject,self).setValue(val)
 
-
+		def toJSON(self):
+			return self.save()
+		
 		def convert(self,val):
 				doc = self.object.Document
 				return doc.getObjectByUUID(val)
+		
+		def clone(self):
+			pro = super().clone()
+			if isinstance(pro.Value,list):
+				pro.Value = [v.Clone for v in pro.Value]
+			else:
+				pro.Value = pro.Value.Clone
+			return pro
 
 main.add(PropertyObject,True)
 from datetime import time
@@ -104,6 +134,10 @@ class PropertyTime(PropertyBase):
 								"second":val.second,
 						}
 				return super().getValue(isSave)
+		def toJSON(self):
+			data = super().toJSON()
+			data["value"] = self.getValue(True)
+			return data
 		
 main.add(PropertyTime)
 
@@ -125,5 +159,59 @@ class PropertyVector(PropertyBase):
 										return [v.toJSON() for v in val]
 								return val.toJSON()
 				return super().getValue(isSave)
+		def toJSON(self):
+			return self.save()
 		
 main.add(PropertyVector,True)
+
+class PropertyColor(PropertyBase):
+	def valueDefault(self):
+		return Color()
+	
+	def checkValue(self,val:Color):
+		return isinstance(val,Color)
+	
+	def convert(self, val):
+		return Color.parse(val)
+
+	def getValue(self, isSave=False):
+		if isSave:
+			val:Color = super().getValue()
+			if val:
+				if isinstance(val,list):
+					return [v.toJSON() for v in val]
+				return val.toJSON()
+		return super().getValue(isSave)
+	def toJSON(self):
+		return self.save()
+main.add(PropertyColor,True)
+
+class PropertyDocument(PropertyBase):
+	
+	def checkValue(self,val:any):
+		from base.document import Document
+		return isinstance(val,Document)
+	
+	def convert(self, val):
+		from core import Core
+
+		doc = Core.openTemplate(val)
+		return doc
+
+	def getValue(self, isSave=False):
+		val = super().getValue(isSave)
+		if isSave and val:
+			return val.FileName
+		return val
+	
+	def setValue(self, val):
+		return super().setValue(val)
+	
+	def toJSON(self):
+		data = super().toJSON()
+		val = super().getValue()
+		if val:
+			data["value"] = val.toJSON()
+		return data
+	
+main.add(PropertyDocument)

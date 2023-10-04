@@ -7,6 +7,7 @@ import time,threading,schedule
 from common import loggerHelper,check_and_create_folder_log,createAttribute
 from base.document import _MainDocument
 from zipfile import ZipFile
+from .config import _Config
 class Command:
 	def Parameter(self):
 		"""
@@ -25,38 +26,38 @@ class Command:
 	
 	def Activated(self,**arg)->any:
 		pass
-class __MainCommand:
+class _MainCommand:
 	def __init__(self) -> None:
 		self.__commands = {}
 
-	def addCommand(self, name, action):
+	def add(self, name, action):
 		if not name in self.__commands:
 			self.__commands[name] = action
 		else:
 			raise ValueError(f"Name: {name} is already in the command")
 
-	def CheckParameter(self,command:Command,*args):
+	def __check_parameter(self,command:Command,*args):
 		param = command.Parameter()
 		if not param or param and len(param) == len(args):
 			for index,arg in enumerate(args):
 				if not isinstance(arg,param[index]):
 					return False
 		return True
-	def runCommand(self, name, *args):
-		command = self.getCommand(name)
+	def run(self, name, *args):
+		command = self.get(name)
 		if command and command.IsActive():
-			if self.CheckParameter(command,*args):
+			if self.__check_parameter(command,*args):
 				return command.Activated(*args)
 			else:
 				raise ValueError("Parameters do not match")
 		return None
 
-	def getCommand(self, name: str = None) -> Command | None:
+	def get(self, name: str = None) -> Command | None:
 		if name:
 			return self.__commands.get(name)
 		return self.__commands
 
-class __MainSchedule:
+class _MainSchedule:
 	def __init__(self) -> None:
 		self.__schedules = {}
 
@@ -80,12 +81,36 @@ class __MainSchedule:
 class __Core():
 	def __init__(self):
 		self.__documents = {}
-		self.cmd = None
-		self.schedule = None
+		self.cmd = _MainCommand()
+		self.schedule = _MainSchedule()
 		self.__log = loggerHelper("Core")
-
+		self.config = _Config()
+		if self.config.get("HandleAutoSave",True):
+			self.job_auto_save = schedule.every(self.config.get("AutoSave",1)).minutes.do(self.__handle_auto_save)
 		#check and create folder logs
 		check_and_create_folder_log()
+
+	def init(self):
+		if not hasattr(self,"mod"):
+			import mod
+			self.mod = mod.modules
+			docs = self.config.get("AutoOpen",[])
+			for doc in docs:
+				self.restore(doc)
+
+		# def loop():
+	# function to print square of given num
+	# while True:
+	# 	Core.loop()
+	# 	time.sleep(1)
+		loopcore = threading.Thread(target=self.loop,daemon=True)
+		loopcore.start()
+
+	def __handle_auto_save(self):
+		for name in self.get():
+			doc = self.get(name)
+			if doc:
+				doc.AutoSave()
 
 	def get(self, name: str = None) -> dict| Document | None:
 		if not name:
@@ -105,10 +130,19 @@ class __Core():
 			self.__dict__[name] = doc
 			return self.__documents.get(name)
 		return None
+
 	def restore(self,pathfile:str)->Document|None:
+		return self.__openfile(pathfile)
+
+	def openTemplate(self,pathfile:str)->Document|None:
+		return self.__openfile(pathfile,False)
+	
+	def __openfile(self,pathfile:str,append = True)->Document|None:
 		temp_dir = os.path.join(tempfile.gettempdir(),__project__,str(uuid.uuid4()))
 		if not os.path.exists(temp_dir):
 			os.makedirs(temp_dir)
+		if not os.path.exists(pathfile):
+			return
 		with ZipFile(pathfile,'r') as zip:
 			zip.extractall(temp_dir)
 			with zip.open("data.json") as f:  
@@ -125,9 +159,11 @@ class __Core():
 					doc = DocClass()
 					doc.restore(data)
 					doc.init()
-					self.__documents[name] = doc
-					self.__dict__[name] = doc
+					if append:
+						self.__documents[name] = doc
+						self.__dict__[name] = doc
 					return doc
+
 	def __checkHasDocument(self,uuid:str):
 		for name in self.__documents:
 			doc = self.get(name)
@@ -136,8 +172,10 @@ class __Core():
 		pass
 			
 	def loop(self):
-		schedule.run_pending()
-		pass
+		while True:
+			schedule.run_pending()
+			time.sleep(1)
+		#pass
 		# try:
 		#     if self.__documents:
 		#         for name in self.__documents:
@@ -155,19 +193,20 @@ class __Core():
 			doc = self.get(name)
 			if doc:
 				doc.onDelete()
-			delattr(self,name)
+				# delattr(self,name)
+				self.__documents.pop(name)
 		except Exception as ex:
 			self.__log.error(f"delete error: {ex}")
 
+	def exit(self):
+		self.config.save()
+		docs = self.get()
+		if docs:
+			for name in docs:
+				self.delete(name)
+		if self.job_auto_save:
+			schedule.cancel_job(self.job_auto_save)
+
+
 Core = __Core()
-def loop():
-	# function to print square of given num
-	while True:
-		Core.loop()
-		time.sleep(1)
-loopcore = threading.Thread(target=loop,daemon=True)
-loopcore.start()
-Core.cmd = __MainCommand()
-Core.schedule = __MainSchedule()
-import mod
-Core.mod = mod.modules
+Core.init()
