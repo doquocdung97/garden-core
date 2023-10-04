@@ -38,6 +38,7 @@ class PropertyBase:
 							self.setValue(val)
 							self.onChange()
 						elif self.getValue() != val:
+								self.__parameter = None
 								self.object.onBeforeChange(self.__Name)
 								self.setValue(val)
 								self.onChange()
@@ -286,9 +287,10 @@ class MainProperty():
 				return False
 		
 class HanlderProperty:
-		def __init__(self) -> None:
-				self.__propertys = []
-		
+		def __init__(self, **kwargs):
+			super().__init__(**kwargs)
+			self.__propertys = []
+	
 		def isInit(self):
 			return True
 		

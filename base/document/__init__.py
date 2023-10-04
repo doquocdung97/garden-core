@@ -1,3 +1,4 @@
+from typing import Any
 from common.filehelper import FileHelper
 from common.loggerhelper import loggerHelper
 from common import createAttribute
@@ -10,9 +11,12 @@ from zipfile import ZipFile
 from constants import VARIATIONS
 from common import group_duplicates
 from ..parameter import Parameter
-class Document(HanlderProperty):
+from common.event import EventObserver
+class Document(HanlderProperty,EventObserver):
+	OBSERVERS = ["addObject"]
 	def __init__(self):
-		super(Document,self).__init__()
+		super().__init__()
+		
 		self.__isChange = False
 		self.__isBackup = False
 		self.__objects:list[ObjectBase] = []
@@ -348,6 +352,7 @@ class Document(HanlderProperty):
 
 		file = FileHelper(self.TempDir)
 		file.deleteDir()
+		self.removeAllObserver()
 
 	def __repr__(self):
 		return str(f"{self.__class__.__name__}({self.Name})")
