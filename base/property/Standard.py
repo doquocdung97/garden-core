@@ -135,7 +135,9 @@ class PropertyTime(PropertyBase):
 						}
 				return super().getValue(isSave)
 		def toJSON(self):
-			return self.save()
+			data = super().toJSON()
+			data["value"] = self.getValue(True)
+			return data
 		
 main.add(PropertyTime)
 

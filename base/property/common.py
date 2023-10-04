@@ -34,7 +34,10 @@ class PropertyBase:
 						if isinstance(value,PropertyParameter):
 							self.__parameter = value
 							value.addInList(self)
-						if self.getValue() != val:
+							self.object.onBeforeChange(self.__Name)
+							self.setValue(val)
+							self.onChange()
+						elif self.getValue() != val:
 								self.object.onBeforeChange(self.__Name)
 								self.setValue(val)
 								self.onChange()
@@ -69,10 +72,6 @@ class PropertyBase:
 			return data
 		
 		def toJSON(self):
-			parameter = self.__parameter
-			parameter_str = str()
-			if parameter:
-				parameter_str = parameter.toString()
 			return {
 					'name': self.__Name,
 					'type': self.__type,
@@ -80,8 +79,7 @@ class PropertyBase:
 					'group': self.group,
 					'description': self.description,
 					'status': self.status,
-					'attribute':self.attribute,
-					'parameter':parameter_str
+					'attribute':self.attribute
 			}
 		
 		def convert(self,val):
@@ -94,6 +92,7 @@ class PropertyBase:
 						from base.object import ObjectBase
 						if isinstance(self.object,ObjectBase):
 							self.__parameter = eval(f"self.object.Document.{reader['parameter']}")
+							self.__parameter.addInList(self)
 							val = self.__parameter.getValue()
 					except:
 						pass
