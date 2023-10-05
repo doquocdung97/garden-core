@@ -11,11 +11,11 @@ zipfile36 = "*"
 pytz = "*"
 ariadne = "*"
 pydantic = "*"
-ariadne-django = "*"
 django-cors-headers = "*"
 graphene-django = "*"
 pyserial = "*"
 appdata = "*"
+graphene-subscriptions = "*"
 
 [dev-packages]
 

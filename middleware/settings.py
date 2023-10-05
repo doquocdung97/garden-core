@@ -37,8 +37,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    "graphene_django",
+    'channels',
+    'graphene_django',
     'corsheaders',
+    'graphene_subscriptions'
 ]
 
 MIDDLEWARE = [
@@ -71,6 +73,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'middleware.wsgi.application'
+ASGI_APPLICATION = 'middleware.routing.application'
 
 
 # Database
@@ -124,7 +127,17 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
+}
+
 GRAPHENE = {
-    "SCHEMA": "django_root.schema.schema"
+    "SCHEMA": "middleware.graphql.schema",
+    # 'MIDDLEWARE': [
+    #     # ...
+    #     'graphene_django_subscriptions.middleware.GraphqlWsMiddleware',
+    # ]
 }
 CORS_ORIGIN_ALLOW_ALL = True
