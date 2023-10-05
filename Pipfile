@@ -16,7 +16,7 @@ graphene-django = "*"
 pyserial = "*"
 appdata = "*"
 graphene-subscriptions = "*"
-
+channels="*"
 [dev-packages]
 
 [requires]
