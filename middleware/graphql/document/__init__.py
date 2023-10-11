@@ -1,7 +1,7 @@
 import graphene
 from .schema import Document
 from core import Core
-class Query(graphene.ObjectType):
+class __Query(graphene.ObjectType):
 	documents = graphene.Field(
 			graphene.List(Document),
 	)
@@ -19,12 +19,12 @@ class Query(graphene.ObjectType):
 		# return doc
 		
 		
-class Mutation(graphene.ObjectType):
+class __Mutation(graphene.ObjectType):
 	test = graphene.Field(
 			Document,
 	)
 
 schema = graphene.Schema(
-		query=Query,
-		mutation=Mutation
+		query=__Query,
+		mutation=__Mutation
 )

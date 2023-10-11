@@ -43,8 +43,9 @@ class EventObserver:
 	# Trigger events.
 	def __trigger(self, name, *args, **kwds):
 		# Run all the functions that are saved.
+		allevent = 'allObserver'
 		try:
-			names = [name,'allObserver']
+			names = [name,allevent]
 			for func in self.__observers:
 				# func(*args, **kwds)
 				if isinstance(func, object):
@@ -52,7 +53,10 @@ class EventObserver:
 						if hasattr(func,func_name):
 							callback = func.__getattribute__(func_name)
 							if callable(callback):
-								callback(self,*args, **kwds)
+								if func_name == allevent:
+									callback(self,name,*args, **kwds)
+								else:
+									callback(self,*args, **kwds)
 		except Exception as ex:
 			print(ex)
 

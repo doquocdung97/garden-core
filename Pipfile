@@ -17,6 +17,11 @@ pyserial = "*"
 appdata = "*"
 graphene-subscriptions = "*"
 channels="*"
+graphene-django-subscriptions = "*"
+redis = "*"
+aioreactive = "*"
+channels-redis = "*"
+
 [dev-packages]
 
 [requires]
