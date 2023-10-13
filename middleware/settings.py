@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'channels',
+    "graphql_ws.django",
     'graphene_django',
     'corsheaders',
     'graphene_subscriptions'
@@ -74,7 +75,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'middleware.wsgi.application'
 ASGI_APPLICATION = 'middleware.routing.application'
-
+# ASGI_APPLICATION = 'graphql_ws.django.routing.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
@@ -128,10 +129,12 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CHANNEL_LAYERS = {
-    "BACKEND": "channels_redis.core.RedisChannelLayer",
-    "CONFIG": {
-        # Use Redis as the message broker
-        "hosts": [("localhost", 6379)],
+    "default": {
+        # "BACKEND": "channels_redis.core.RedisChannelLayer",
+        # "CONFIG": {
+        #     "hosts": [("localhost", 6379)],
+        # },
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
     },
 }
 

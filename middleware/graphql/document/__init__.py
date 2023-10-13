@@ -1,7 +1,9 @@
-import graphene
-from .schema import Document
+import graphene,redis,asyncio,json
+from typing import Any
+from .schema import Document,DocumentObserver
 from core import Core
-class __Query(graphene.ObjectType):
+from ...redis import ObserverGraphql
+class _Query(graphene.ObjectType):
 	documents = graphene.Field(
 			graphene.List(Document),
 	)
@@ -16,15 +18,43 @@ class __Query(graphene.ObjectType):
 		doc = Core.get(name)
 		if doc:
 			return doc.toJSON()
-		# return doc
 		
-		
-class __Mutation(graphene.ObjectType):
+class _Mutation(graphene.ObjectType):
 	test = graphene.Field(
 			Document,
 	)
+	hello = graphene.String(text=graphene.Argument(graphene.String))
+	def resolve_hello(root, info,text):
+		# pubsub.punsubscribe("test")
+		# pubsub.on_next(text)
+		pass
 
+class _Subscription(graphene.ObjectType):
+		DocumentObserver = graphene.Field(DocumentObserver,name=graphene.Argument(graphene.String,required=True))
+
+		def resolve_DocumentObserver(root, info,name):
+			pubsub = ObserverGraphql.PubSubDoc(name)
+			if not pubsub:
+				raise ValueError("not fount name document")
+			subscription_uuid = info.context.get("subscription_uuid")
+			info.context[f"subscription_pubsub_{subscription_uuid}"] = pubsub
+			return pubsub._data_observer.map(lambda message: message)
 schema = graphene.Schema(
-		query=__Query,
-		mutation=__Mutation
+		query=_Query,
+		mutation=_Mutation,
+		subscription=_Subscription
 )
+# from graphql import GraphQLObjectType, GraphQLSchema, GraphQLString
+
+# SubscriptionType = GraphQLObjectType(
+#     name="Subscription",
+#     fields={
+#         "someSubscription": {
+#             "type": GraphQLString,
+#             "resolve": lambda root, info, **kwargs: subscription_resolver(root, info, info.context.get("subscription_id"), **kwargs)
+#         }
+#     }
+# )
+# schema = GraphQLSchema(
+#     subscription=SubscriptionType
+# )

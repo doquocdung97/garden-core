@@ -19,6 +19,7 @@ def check_func_observer(func,name,observers = [])->bool:
 	return False
 
 class EventObserver:
+	OBSERVERS = []
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
 		self.__observers = []

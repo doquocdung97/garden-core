@@ -18,9 +18,8 @@ appdata = "*"
 graphene-subscriptions = "*"
 channels="*"
 graphene-django-subscriptions = "*"
-redis = "*"
-aioreactive = "*"
-channels-redis = "*"
+channels-redis = "==2.4.2"
+graphql-ws = "*"
 
 [dev-packages]
 
