@@ -1,13 +1,39 @@
-import graphene
-from .document import schema 
+import graphene,asyncio
+from .document import schema
+from ..redis import ObserverGraphql
 
-class Query(schema.query):
-	pass
+def merge_schema(*args):
+	schema = graphene.Schema()
+	query = []
+	mutation = []
+	subscription = []
+	for schema in args:
+		if isinstance(schema,graphene.Schema):
+			if schema._query:
+				query.append(schema._query)
+			if schema._mutation:
+				mutation.append(schema._mutation)
+			if schema._subscription:
+				subscription.append(schema._subscription)
 
-class Mutation(schema.mutation):
-	pass
+	class Query(*query):
+		pass
 
-schema = graphene.Schema(
-		query=Query,
-		mutation=Mutation
-)
+	class Mutation(*mutation):
+			pass
+	# def MergeSchema()
+	if not ObserverGraphql.IsOpenRedis:
+		return graphene.Schema(
+			query=Query,
+			mutation=Mutation
+		)
+	class Subscription(*subscription):
+			pass
+
+	return graphene.Schema(
+			query=Query,
+			mutation=Mutation, 
+			subscription=Subscription
+	)
+
+schema = merge_schema(schema)

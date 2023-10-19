@@ -9,3 +9,9 @@ venv\Scripts\activate
 source venv/bin/activate
 
 pip install -r requirements.txt
+
+
+
+redis:
+https://viblo.asia/p/gioi-thieu-ve-pubsub-va-su-dung-python-va-redis-demo-pubsub-V3m5WbywlO7
+PUBLISH test "hello"

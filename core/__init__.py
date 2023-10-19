@@ -77,9 +77,10 @@ class _MainSchedule:
 		schedule.run_pending()
 
 # cmd = __MainCommand()
-
-class __Core():
+from common.event import EventObserver
+class __Core(EventObserver):
 	def __init__(self):
+		super().__init__()
 		self.__documents = {}
 		self.cmd = _MainCommand()
 		self.schedule = _MainSchedule()
@@ -126,8 +127,7 @@ class __Core():
 			doc.setProperties()
 			doc.Name = name
 			doc.init()
-			self.__documents[name] = doc
-			self.__dict__[name] = doc
+			self.onCreateDoc(name,doc)
 			return self.__documents.get(name)
 		return None
 
@@ -160,9 +160,11 @@ class __Core():
 					doc.restore(data)
 					doc.init()
 					if append:
-						self.__documents[name] = doc
-						self.__dict__[name] = doc
+						self.onCreateDoc(name,doc)
 					return doc
+	def onCreateDoc(self,name,doc):
+		self.__documents[name] = doc
+		self.__dict__[name] = doc
 
 	def __checkHasDocument(self,uuid:str):
 		for name in self.__documents:
@@ -201,7 +203,7 @@ class __Core():
 	def exit(self):
 		self.config.save()
 		docs = self.get()
-		if docs:
+		if docs and len(docs):
 			for name in docs:
 				self.delete(name)
 		if self.job_auto_save:
