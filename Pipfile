@@ -20,6 +20,7 @@ channels="*"
 graphene-django-subscriptions = "*"
 channels-redis = "==2.4.2"
 graphql-ws = "*"
+redis = "*"
 
 [dev-packages]
 

@@ -13,6 +13,7 @@ from . import schedule
 from . import sensor
 from . import tree
 from . import serial
-modules.extend([jsondata,schedule,sensor,tree,serial])
+from . import car
+modules.extend([jsondata,schedule,sensor,tree,serial,car])
 # for module_name in module_names:
 #     module = importlib.import_module(f"{folder_path}.{module_name}")
