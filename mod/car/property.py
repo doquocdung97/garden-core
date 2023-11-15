@@ -1,7 +1,7 @@
 from base.property import PropertyBase, MainProperty
 main_property = MainProperty()
 
-from .common import Position
+from .common import Position,Gps
 class PropertyPosition(PropertyBase):
 	def valueDefault(self):
 		return Position()
@@ -28,6 +28,35 @@ class PropertyPosition(PropertyBase):
 				return val.toJSON()
 		return super().getValue(isSave)
 	def toJSON(self):
-		return self.save()
+		data = super().toJSON()
+		data["value"] = self.getValue(True)
+		return data
 	
-main_property.add(PropertyPosition,True)
+class PropertyGps(PropertyBase):
+	def valueDefault(self):
+		return Gps()
+		
+	def checkValue(self,val:Gps):
+		if  isinstance(val,tuple) and len(val) == 2:
+			return True
+		return isinstance(val,Gps)
+	
+	def convert(self, val):
+		return Gps.parse(val)
+
+	def getValue(self, isSave=False):
+		if isSave:
+			val:Gps = super().getValue()
+			if val:
+				if isinstance(val,list):
+					return [v.toJSON() for v in val]
+				return val.toJSON()
+		return super().getValue(isSave)
+	
+	def toJSON(self):
+		data = super().toJSON()
+		data["value"] = self.getValue(True)
+		return data
+	
+main_property.add(PropertyPosition,True,isView=True)
+main_property.add(PropertyGps,True,isView=True)

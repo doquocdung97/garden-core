@@ -231,19 +231,22 @@ def PropertyViewBase(target):
 			
 		@Value.setter
 		def Value(self, val):
-			if ismethod(val) or isfunction(val):
-				super(PropertyViewBase,self).setValue(val)
-			else:
-				raise ValueError('value only read')
+			self.func_value = val
 		
 		def save(self):
 			return super(PropertyViewBase,self).save()
 		
 		def getValue(self, isSave=False):
-			val = super(PropertyViewBase,self).getValue()
-			if ismethod(val) or isfunction(val):
-				return val()
+			# val = super(PropertyViewBase,self).getValue()
+			if hasattr(self,'func_value') and (ismethod(self.func_value) or isfunction(self.func_value)):
+				self.setValue(self.func_value())
+				return super(PropertyViewBase,self).getValue(True)
 			return self.valueDefault()
+		
+		def toJSON(self):
+			data = super().toJSON()
+			data["value"] = self.getValue(True)
+			return data
 		
 		def __repr__(self):
 			return str(f'{name}({self.toString()})')

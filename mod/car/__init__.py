@@ -9,7 +9,7 @@ import datetime, threading,schedule
 from datetime import time
 import io
 from base.object.common import MainObject, ObjectBase
-from .property import Position
+from .property import Position,Gps
 class ObjectCart(ObjectBase):
 	def __init__(self, document):
 			super().__init__(document)
@@ -18,23 +18,32 @@ class ObjectCart(ObjectBase):
 	def init(self):
 		self.__ser = None
 		# self.Port = self.listport
+		self.Port = self.__port
 		self.IsOpen = self.__isOpen
+		self.Position = self.__position
+		self.Gps = self.__gps
 		super().init()
 		self.__checkConnect()
 		
-
-	def listport(self,property):
-		return [v.name for v in list_ports.comports()]
+	def __port(self):
+		if self.__isOpen():
+			return self.__ser.port
+		return None
+	
+	def listport(self):
+		return [v.device for v in list_ports.comports()]
 
 	def setProperties(self):
 		if not "AutoConnect" in self.propertys:
 			self.addProperty("PropertyBool","AutoConnect")
 			self.AutoConnect = True
 
+		# if not "Port" in self.propertys:
+		# 	pro = self.addProperty("PropertyStringEnum","Port")
+		# 	self.Port = self.listport
+		# 	self.Port = "COM13"
 		if not "Port" in self.propertys:
-			pro = self.addProperty("PropertyStringEnum","Port")
-			self.Port = self.listport
-			self.Port = "COM13"
+			self.addProperty("PropertyStringView","Port")
 
 		if not "IsOpen" in self.propertys:
 			self.addProperty("PropertyBoolView","IsOpen")
@@ -44,7 +53,16 @@ class ObjectCart(ObjectBase):
 			self.Timeout = 0.1
 
 		if not "Position" in self.propertys:
-			self.addProperty("PropertyPosition","Position")
+			self.addProperty("PropertyPositionView","Position")
+
+		# if not "TargetPosition" in self.propertys:
+		# 	self.addProperty("PropertyPosition","TargetPosition")
+
+		if not "Gps" in self.propertys:
+			self.addProperty("PropertyGpsView","Gps")
+
+		# if not "Rpm" in self.propertys:
+		# 	self.addProperty("PropertyPosition","Rpm")
 
 		return super().setProperties()
 
@@ -58,38 +76,68 @@ class ObjectCart(ObjectBase):
 
 	def connect(self):
 		self.disConnect()
-		try:
-			self.__ser = serial.Serial(port=self.Port,\
+		for device in self.listport():
+			try:
+				self.__ser = serial.Serial(port=device,\
 														baudrate=115200,\
 														parity=serial.PARITY_NONE,\
 														stopbits=serial.STOPBITS_ONE,\
 														bytesize=serial.EIGHTBITS,\
-														timeout=self.Timeout)
-		except Exception as ex:
-			self.logger.error(f"connect port {self.Port} error {ex}")
+														timeout=self.Timeout,\
+														write_timeout=1)
+				msg = self.send("i")
+				if msg and msg.get("type") == "CAR" and msg.get("model") == 2:
+					break
+			except Exception as ex:
+				# self.logger.error(f"connect port {self.Port} error {ex}")
+				pass
+		if not self.__ser.is_open:
+			self.logger.error(f"Not found device.")
 		self.__setJob()
 		return self.__ser
 	
 	def send(self,val:str):
 		if self.__isOpen():
-			mess = bytes(f"{val}\r\n", 'utf-8')
-			self.__ser.write(mess)
-			msg = self.read()
-			print(msg)
-			return json.loads(msg)
-		return False
+			try:
+				mess = bytes(f"{val}\r\n", 'utf-8')
+				self.__ser.write(mess)
+				msg = self.read()
+				return json.loads(msg)
+			except Exception as ex:
+				pass
+		return None
 
 	def __setJob(self):
 		if hasattr(self,"job"):
 			schedule.cancel_job(self.__job)
-		if self.__isOpen():
-			self.__job = schedule.every(self.Timeout).seconds.do(self.__readSerial)
+		# if self.__isOpen():
+		# 	self.__job = schedule.every(self.Timeout).seconds.do(self.__readSerial)
 
+	def SetPosition(self,left_pos,right_pos):
+		self.send(f"m {left_pos} {right_pos}")
+
+	def SetRpm(self,left_rpm,right_rpm):
+		self.send(f"a {left_rpm} {right_rpm}")
+		
 	def __readSerial(self):
-		pass
-		# message = self.read()
-		# if message:
-		# 	self.logger.info(message)
+		try:
+			gps = self.send("g")
+			if gps:
+				self.Gps = Gps(gps.get("lat",0.0),gps.get("log",0.0))
+
+			data = self.send("d")
+			if data:
+				left_motor = data.get("left")
+				right_motor = data.get("right")
+				left_pos = 0
+				right_pos = 0
+				if left_motor:
+					left_pos = left_motor.get("pos",0.0)
+				if right_motor:
+					right_pos = right_motor.get("pos",0.0)
+				self.Position = Position(left_pos,right_pos)
+		except Exception as ex:
+			pass
 
 	def disConnect(self):
 		if isinstance(self.__ser,serial.Serial):
@@ -104,6 +152,34 @@ class ObjectCart(ObjectBase):
 			return self.__ser.is_open
 		return False
 
+	def __position(self):
+		left_pos = 0
+		right_pos = 0
+		try:
+			data = self.send("d")
+			if data:
+				left_motor = data.get("left")
+				right_motor = data.get("right")
+				if left_motor:
+					left_pos = left_motor.get("pos",0.0)
+				if right_motor:
+					right_pos = right_motor.get("pos",0.0)
+		except Exception as ex:
+			self.logger.error(ex)
+		return Position(left_pos,right_pos)
+	
+	def __gps(self):
+		lat = 0.0
+		log = 0.0
+		try:
+			gps = self.send("g")
+			if gps:
+				lat = gps.get("lat",lat)
+				log = gps.get("log",log)
+		except Exception as ex:
+			self.logger.error(ex)
+		return Gps(lat,log)
+	
 	def read(self):
 		if self.__isOpen():
 			serBarCode = self.__ser.readline()
@@ -115,19 +191,34 @@ class ObjectCart(ObjectBase):
 	def onDelete(self):
 		self.disConnect()
 		return super().onDelete()
+	
+	# def __del__(self):
+	# 	self.onDelete()
 
 	def execute(self):
-			self.logger.info("execute")
-			return super().execute()
+		self.logger.info("execute")
+		return super().execute()
 
 	def onChanged(self, prop):
 			# return super().onChanged(prop)
 		isset = self.isInit()
-		if isset and prop in ["AutoConnect","Port","Timeout"]:
-			self.__checkConnect()
-		elif isset and prop == "Position":
-			pos = self.Position
-			self.send(f"m {pos.Left} {pos.Right}")
-		
+		# if isset and prop in ["AutoConnect","Port","Timeout"]:
+		# 	self.__checkConnect()
+		# elif isset and prop == "TargetPosition":
+		# 	pos = self.TargetPosition
+		# 	self.send(f"m {pos.Left} {pos.Right}")
+		# elif isset and prop == "Rpm":
+		# 	pos = self.Rpm
+		# 	self.send(f"a {pos.Left} {pos.Right}")
+
+class ObjectCartItem(ObjectBase):
+	def setProperties(self):
+		if not self.checkNameInProperty("Position"):
+			self.addProperty("PropertyPositionView","Position")
+
+		if not self.checkNameInProperty("Gps"):
+			self.addProperty("PropertyGpsView","Gps")
+
+		return super().setProperties()
 main = MainObject()
 main.add(ObjectCart)

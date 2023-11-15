@@ -204,7 +204,8 @@ class __Core(EventObserver):
 	def exit(self):
 		self.config.save()
 		docs = self.get()
-		if docs and len(docs):
+		if docs and len(docs) > 0:
+			docs = dict(docs)
 			for name in docs:
 				self.delete(name)
 		if self.job_auto_save:
