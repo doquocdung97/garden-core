@@ -14,14 +14,14 @@ class PropertyString(PropertyBase):
 		
 		def checkValue(self,val):
 				return isinstance(val,str)
-main.add(PropertyString,True,True)
+main.add(PropertyString,True,True,True)
 
 class PropertyInteger(PropertyBase):
 		def valueDefault(self):
 				return 0
 		def checkValue(self,val):
 				return isinstance(val,int)
-main.add(PropertyInteger,True,True)
+main.add(PropertyInteger,True,True,True)
 
 class PropertyBool(PropertyBase):
 		def valueDefault(self):
@@ -160,7 +160,9 @@ class PropertyVector(PropertyBase):
 								return val.toJSON()
 				return super().getValue(isSave)
 		def toJSON(self):
-			return self.save()
+			data = super().toJSON()
+			data["value"] = self.getValue(True)
+			return data
 		
 main.add(PropertyVector,True)
 
@@ -183,7 +185,9 @@ class PropertyColor(PropertyBase):
 				return val.toJSON()
 		return super().getValue(isSave)
 	def toJSON(self):
-		return self.save()
+		data = super().toJSON()
+		data["value"] = self.getValue(True)
+		return data
 main.add(PropertyColor,True)
 
 class PropertyDocument(PropertyBase):

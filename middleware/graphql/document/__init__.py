@@ -1,6 +1,7 @@
 import graphene,redis,asyncio,json
 from typing import Any
-from .schema import Document,DocumentObserver
+from .schema import Document,DocumentObserver,Property
+from ..common.scalar import ObjectField
 from core import Core
 from ...redis import ObserverGraphql
 class _Query(graphene.ObjectType):
@@ -28,18 +29,18 @@ class _Mutation(graphene.ObjectType):
 		# pubsub.punsubscribe("test")
 		# pubsub.on_next(text)
 		pass
-
 class _Subscription(graphene.ObjectType):
-		DocumentObserver = graphene.Field(DocumentObserver,name=graphene.Argument(graphene.String,required=True))
-
-		def resolve_DocumentObserver(root, info,name):
+		documentObserver = graphene.Field(DocumentObserver,name=graphene.Argument(graphene.String,required=True))
+	
+		def resolve_documentObserver(root, info,name):
 			pubsub = ObserverGraphql.PubSubDoc(name)
 			if not pubsub:
 				raise ValueError("not fount name document")
 			subscription_uuid = info.context.get("subscription_uuid")
 			info.context[f"subscription_pubsub_{subscription_uuid}"] = pubsub
 			return pubsub._data_observer.map(lambda message: message)
-schema = graphene.Schema(
+		
+schema_document = graphene.Schema(
 		query=_Query,
 		mutation=_Mutation,
 		subscription=_Subscription

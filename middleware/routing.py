@@ -36,7 +36,9 @@ from channels import __version__ as channels_version
 channels_version_tuple = get_version_tuple(channels_version)
 from graphql_ws.constants import GQL_CONNECTION_INIT, GQL_START, GQL_STOP
 import json,uuid
-
+# from channels.generic.websocket import AsyncWebsocketConsumer
+# from .camera import VideoCamera
+# import asyncio
 class CustomGraphQLSubscriptionConsumer(GraphQLSubscriptionConsumer):
 	
 	# def connect(self):
@@ -64,7 +66,28 @@ class CustomGraphQLSubscriptionConsumer(GraphQLSubscriptionConsumer):
 					print(ex)
 	
 		return super().receive(text_data, bytes_data, **kwargs)
-				
+
+# _camera = VideoCamera()
+# class CameraConsumer(AsyncWebsocketConsumer):
+# 	def __init__(self, *args, **kwargs):
+# 		super().__init__(*args, **kwargs)
+# 		self.uuid = uuid.uuid4()
+
+# 	async def connect(self):
+# 		await self.accept()
+# 		_camera.start()
+# 		try:
+# 			while _camera.is_open():
+# 				await self.send(_camera.get_frame())
+# 				await asyncio.sleep(0.05)
+# 		except asyncio.CancelledError:
+# 				pass
+# 		# finally:
+# 		# 		_camera.video.release()
+
+# 	async def disconnect(self, close_code):
+# 			pass				
 application = ProtocolTypeRouter({"websocket": URLRouter([
-	path("graphql/", CustomGraphQLSubscriptionConsumer)
+	path("graphql/", CustomGraphQLSubscriptionConsumer),
+	# path('camera/', CameraConsumer),
 ])})

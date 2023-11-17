@@ -1,5 +1,6 @@
 import graphene,asyncio
-from .document import schema
+from .document import schema_document
+from .object import schema_object
 from ..redis import ObserverGraphql
 
 def merge_schema(*args):
@@ -36,4 +37,4 @@ def merge_schema(*args):
 			subscription=Subscription
 	)
 
-schema = merge_schema(schema)
+schema = merge_schema(schema_document,schema_object)

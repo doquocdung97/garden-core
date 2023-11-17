@@ -84,12 +84,13 @@ class __Core(EventObserver):
 		self.__documents = {}
 		self.cmd = _MainCommand()
 		self.schedule = _MainSchedule()
+		#check and create folder logs
+		check_and_create_folder_log()
 		self.__log = loggerHelper("Core")
 		self.config = _Config()
 		if self.config.get("HandleAutoSave",True):
 			self.job_auto_save = schedule.every(self.config.get("AutoSave",1)).minutes.do(self.__handle_auto_save)
-		#check and create folder logs
-		check_and_create_folder_log()
+		
 
 	def init(self):
 		if not hasattr(self,"mod"):
@@ -203,7 +204,8 @@ class __Core(EventObserver):
 	def exit(self):
 		self.config.save()
 		docs = self.get()
-		if docs and len(docs):
+		if docs and len(docs) > 0:
+			docs = dict(docs)
 			for name in docs:
 				self.delete(name)
 		if self.job_auto_save:
