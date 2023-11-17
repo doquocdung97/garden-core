@@ -19,6 +19,8 @@ class ObjectCart(ObjectBase):
 		self.__ser = None
 		# self.Port = self.listport
 		self.Port = self.__port
+		self.__val_position = Position()
+		self.__val_gps = Gps()
 		self.IsOpen = self.__isOpen
 		self.Position = self.__position
 		self.Gps = self.__gps
@@ -55,6 +57,8 @@ class ObjectCart(ObjectBase):
 		if not "Position" in self.propertys:
 			self.addProperty("PropertyPositionView","Position")
 
+		# if not "Position" in self.propertys:
+		# 	self.addProperty("PropertyPositionView","Position")
 		# if not "TargetPosition" in self.propertys:
 		# 	self.addProperty("PropertyPosition","TargetPosition")
 
@@ -96,22 +100,21 @@ class ObjectCart(ObjectBase):
 		self.__setJob()
 		return self.__ser
 	
-	def send(self,val:str):
+	def send(self,val:str,read = False):
 		if self.__isOpen():
 			try:
 				mess = bytes(f"{val}\r\n", 'utf-8')
 				self.__ser.write(mess)
-				msg = self.read()
-				return json.loads(msg)
+				if read:
+					return self.read(True)
 			except Exception as ex:
-				pass
-		return None
+				self.logger.error(ex)
 
 	def __setJob(self):
-		if hasattr(self,"job"):
+		if hasattr(self,"__job"):
 			schedule.cancel_job(self.__job)
-		# if self.__isOpen():
-		# 	self.__job = schedule.every(self.Timeout).seconds.do(self.__readSerial)
+		if self.__isOpen():
+			self.__job = schedule.every(self.Timeout).seconds.do(self.__readSerial)
 
 	def SetPosition(self,left_pos,right_pos):
 		self.send(f"m {left_pos} {right_pos}")
@@ -121,28 +124,19 @@ class ObjectCart(ObjectBase):
 		
 	def __readSerial(self):
 		try:
-			gps = self.send("g")
-			if gps:
-				self.Gps = Gps(gps.get("lat",0.0),gps.get("log",0.0))
-
-			data = self.send("d")
-			if data:
-				left_motor = data.get("left")
-				right_motor = data.get("right")
-				left_pos = 0
-				right_pos = 0
-				if left_motor:
-					left_pos = left_motor.get("pos",0.0)
-				if right_motor:
-					right_pos = right_motor.get("pos",0.0)
-				self.Position = Position(left_pos,right_pos)
+			msg = self.read()
+			data = json.loads(msg)
+			self.__val_position = Position.parse(data)
+			data_gps = data.get("gps")
+			if data_gps:
+				self.__val_gps = Gps.parse(data_gps)
 		except Exception as ex:
 			pass
 
 	def disConnect(self):
 		if isinstance(self.__ser,serial.Serial):
 			self.__ser.close()
-			if hasattr(self,"job"):
+			if hasattr(self,"__job"):
 				schedule.cancel_job(self.__job)
 			return True
 		return False
@@ -153,39 +147,45 @@ class ObjectCart(ObjectBase):
 		return False
 
 	def __position(self):
-		left_pos = 0
-		right_pos = 0
-		try:
-			data = self.send("d")
-			if data:
-				left_motor = data.get("left")
-				right_motor = data.get("right")
-				if left_motor:
-					left_pos = left_motor.get("pos",0.0)
-				if right_motor:
-					right_pos = right_motor.get("pos",0.0)
-		except Exception as ex:
-			self.logger.error(ex)
-		return Position(left_pos,right_pos)
+		return self.__val_position
+		# try:
+		# 	data = self.send("d")
+		# 	if data:
+		# 		# left_motor = data.get("left")
+		# 		# right_motor = data.get("right")
+		# 		# if left_motor:
+		# 		# 	left_pos = left_motor.get("pos",0.0)
+		# 		# if right_motor:
+		# 		# 	right_pos = right_motor.get("pos",0.0)
+		# 		return Position.parse(data)
+		# except Exception as ex:
+		# 	self.logger.error(ex)
+		# return Position()
 	
 	def __gps(self):
-		lat = 0.0
-		log = 0.0
-		try:
-			gps = self.send("g")
-			if gps:
-				lat = gps.get("lat",lat)
-				log = gps.get("log",log)
-		except Exception as ex:
-			self.logger.error(ex)
-		return Gps(lat,log)
+		return self.__val_gps
+		# lat = 0.0
+		# log = 0.0
+		# try:
+		# 	gps = self.send("g")
+		# 	if gps:
+		# 		lat = gps.get("lat",lat)
+		# 		log = gps.get("log",log)
+		# except Exception as ex:
+		# 	self.logger.error(ex)
+		# return Gps(lat,log)
 	
-	def read(self):
+	def read(self,all = False):
 		if self.__isOpen():
-			serBarCode = self.__ser.readline()
+			msgs = self.__ser.readlines()
+			serBarCode = msgs[-1]
 			if len(serBarCode) >= 1:
 				msg = serBarCode.decode("utf-8")
-				return msg.replace('\r\n',str())
+				msg = msg.replace('\r\n',str())
+				if msg and (all or not msg in ["OK","Invalid Command"]):
+					return msg
+				else:
+					return None
 		return None
 
 	def onDelete(self):
@@ -222,3 +222,4 @@ class ObjectCartItem(ObjectBase):
 		return super().setProperties()
 main = MainObject()
 main.add(ObjectCart)
+main.add(ObjectCartItem)

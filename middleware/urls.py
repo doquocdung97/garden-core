@@ -27,26 +27,26 @@ import os,json
 from graphene_django.views import GraphQLView
 from .graphql import schema
 from django.views.decorators.csrf import csrf_exempt
-class Observer:
-	# def onBeforeChange(self,doc,prop):
-	# 	print("onBeforeChange - onBeforeChange  ",doc, prop)
+# class Observer:
+# 	# def onBeforeChange(self,doc,prop):
+# 	# 	print("onBeforeChange - onBeforeChange  ",doc, prop)
 		
-	# def onChanged(self,doc,prop):
-	# 	print("Observer - onChanged  ",doc, prop)
+# 	# def onChanged(self,doc,prop):
+# 	# 	print("Observer - onChanged  ",doc, prop)
 
-	# def onChangedObject(self,doc,obj, prop:str):
-	# 	print("Observer - onChangedObject  ",doc,obj, prop)
+# 	# def onChangedObject(self,doc,obj, prop:str):
+# 	# 	print("Observer - onChangedObject  ",doc,obj, prop)
 
-	def allObserver(self,doc,*args, **kwds):
-		print("Observer - allObserver  ",doc,*args, **kwds)
+# 	def allObserver(self,doc,*args, **kwds):
+# 		print("Observer - allObserver  ",doc,*args, **kwds)
 
-observer = Observer()
+# observer = Observer()
 def test(request):
 
 	document = Core.get('testdemo')
 	if(not document):
 		document = Core.create("Document","testdemo")
-		document.addObserver(observer)
+		# document.addObserver(observer)
 
 		document.Parameter.addProperty("PropertyFloatEnum","ParameterFloat")
 		document.Parameter.ParameterFloat = [1.1,2.0,10]
@@ -62,7 +62,7 @@ def test(request):
 		# Furture_1.Datas = document.Parameter.ParameterFloat
 
 		car = document.addObject('ObjectCart',"Car")
-
+		camera = document.addObject("ObjectCameraBase","CameraBase")
 
 		# obj.addProperty("PropertyStrings","Texts")
 		# obj.Texts = ["1","2","3"]
@@ -166,6 +166,13 @@ def clone(request):
 		# 	json_file.close()
 	return JsonResponse(data)
 
+# from .camera import livefe
+# from django.http import HttpResponse
+# from django.template import Context, loader
+# def index(request):
+#     template = loader.get_template('index.html')
+#     return HttpResponse(template.render({}, request))
+
 urlpatterns = [
 	path('admin/', admin.site.urls),
 	path('test/', test),
@@ -175,6 +182,7 @@ urlpatterns = [
 	path('save/', save),
 	path('clone/', clone),
 	path('config/', config),
+	# path('camera/', livefe, name="live_camera"),
 	path('graphql/', csrf_exempt(GraphQLView.as_view(graphiql=False,schema=schema)),name="graphql"),
-
+	# path('', index),
 ]

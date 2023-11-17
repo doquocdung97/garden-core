@@ -28,14 +28,16 @@ class ObserverDocument:
 	def onChangedObject(self,doc,obj, prop:str):
 		pro = obj.getProperty(prop)
 		frame = inspect.currentframe()
-		data = {
-			"name":doc.Name,
-			"event":frame.f_code.co_name,
-			"object":{
+		data_obj = {
 				"name":obj.Name,
 				"property":pro.toJSON()
 			}
+		data = {
+			"name":doc.Name,
+			"event":frame.f_code.co_name,
+			"object":data_obj
 		}
+		self.__redis.publish(f"{self.__name}_{obj.Name}",json.dumps(data_obj))
 		self.__redis.publish(self.__name,json.dumps(data))
 
 class CustumPubSub(PubSub):
@@ -71,13 +73,15 @@ class __ObserverGraphql:
 		except Exception as ex:
 			self.__logger.error(f"Can't connect to Redis")
 
-	def PubSubDoc(self,name):
-		if name not in self.__doc:
-			doc = Core.get(name)
+	def PubSubDoc(self,docname, name = None):
+		if not name:
+			name = docname
+		if docname not in self.__doc:
+			doc = Core.get(docname)
 			if doc:
-				observer = ObserverDocument(name,self.__redis)
+				observer = ObserverDocument(docname,self.__redis)
 				doc.addObserver(observer)
-				self.__doc[name] = observer
+				self.__doc[docname] = observer
 				observer = CustumPubSub(self.__redis.connection_pool)
 				observer.subscribe(name)
 				return observer
