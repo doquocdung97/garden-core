@@ -21,8 +21,8 @@ class _CommandVector2D(Command):
 	
 	def GetResources(self):
 		return {
-			"Title","Data base",
-			"Tooltip","show data",
+			"Title":"Data base",
+			"Tooltip":"show data",
 		}
 
 	def IsActive(self) -> bool:

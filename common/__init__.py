@@ -4,6 +4,8 @@ import re
 def group_duplicates(input_list:list):
 	grouped_data = {}
 	for item in input_list:
+		if isinstance(item,str):
+			item = item.lower()
 		if item not in grouped_data:
 			grouped_data[item] = item
 	return list(grouped_data.values())

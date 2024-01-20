@@ -1,22 +1,17 @@
-from core import Core,Command,Schedule
 from serial.tools import list_ports
-import serial,json
-
-from core import Core,Command,Schedule
-from core.schedule import EveryDay, EveryTime
+import serial,json,schedule
+from core import Core,Command
 from common import loggerHelper
-import datetime, threading,schedule
-from datetime import time
-import io
 from base.object.common import MainObject, ObjectBase
 from .property import Position,Gps
-class ObjectCart(ObjectBase):
+class ObjectCar(ObjectBase):
 	def __init__(self, document):
 			super().__init__(document)
 			# self.threading = threading.Thread(target=self.loop,daemon=True)
 			
 	def init(self):
 		self.__ser = None
+		self.__job = None
 		# self.Port = self.listport
 		self.Port = self.__port
 		self.__val_position = Position()
@@ -38,7 +33,7 @@ class ObjectCart(ObjectBase):
 	def setProperties(self):
 		if not "AutoConnect" in self.propertys:
 			self.addProperty("PropertyBool","AutoConnect")
-			self.AutoConnect = True
+			self.AutoConnect = False
 
 		# if not "Port" in self.propertys:
 		# 	pro = self.addProperty("PropertyStringEnum","Port")
@@ -64,6 +59,25 @@ class ObjectCart(ObjectBase):
 
 		if not "Gps" in self.propertys:
 			self.addProperty("PropertyGpsView","Gps")
+
+		if not self.checkNameInProperty("Connect"):
+			self.addProperty("PropertyFunction","Connect")
+			self.Connect = self.connect
+
+		if not self.checkNameInProperty("DataTest"):
+			self.addProperty("PropertyStringEnum","DataTest")
+			self.DataTest = ["dung","duy","phuong"]
+			self.DataTest = "dung"
+
+		if not self.checkNameInProperty("History"):
+			self.addProperty("PropertyObjects","History")
+			self.History = []
+		if not self.checkNameInProperty("Camera"):
+			self.addProperty("PropertyObject","Camera")
+
+		if not self.checkNameInProperty("PositionData"):
+			self.addProperty("PropertyObject","PositionData")
+			self.PositionData = None
 
 		# if not "Rpm" in self.propertys:
 		# 	self.addProperty("PropertyPosition","Rpm")
@@ -91,6 +105,7 @@ class ObjectCart(ObjectBase):
 														write_timeout=1)
 				msg = self.send("i")
 				if msg and msg.get("type") == "CAR" and msg.get("model") == 2:
+					self.send(f"rl {self.Timeout * 1000}")
 					break
 			except Exception as ex:
 				# self.logger.error(f"connect port {self.Port} error {ex}")
@@ -111,7 +126,7 @@ class ObjectCart(ObjectBase):
 				self.logger.error(ex)
 
 	def __setJob(self):
-		if hasattr(self,"__job"):
+		if self.__job:
 			schedule.cancel_job(self.__job)
 		if self.__isOpen():
 			self.__job = schedule.every(self.Timeout).seconds.do(self.__readSerial)
@@ -136,7 +151,7 @@ class ObjectCart(ObjectBase):
 	def disConnect(self):
 		if isinstance(self.__ser,serial.Serial):
 			self.__ser.close()
-			if hasattr(self,"__job"):
+			if self.__job:
 				schedule.cancel_job(self.__job)
 			return True
 		return False
@@ -190,10 +205,14 @@ class ObjectCart(ObjectBase):
 
 	def onDelete(self):
 		self.disConnect()
+		position = self.PositionData
+		if position:
+			for item in position.Children:
+				self.Document.deleteObject(item)
+			self.Document.deleteObject(position)
+		if self.Camera:
+			self.Document.deleteObject(self.Camera)
 		return super().onDelete()
-	
-	# def __del__(self):
-	# 	self.onDelete()
 
 	def execute(self):
 		self.logger.info("execute")
@@ -211,7 +230,9 @@ class ObjectCart(ObjectBase):
 		# 	pos = self.Rpm
 		# 	self.send(f"a {pos.Left} {pos.Right}")
 
-class ObjectCartItem(ObjectBase):
+	def get_command(self):
+		return ['InsertLocation']
+class ObjectCarItem(ObjectBase):
 	def setProperties(self):
 		if not self.checkNameInProperty("Position"):
 			self.addProperty("PropertyPositionView","Position")
@@ -220,6 +241,34 @@ class ObjectCartItem(ObjectBase):
 			self.addProperty("PropertyGpsView","Gps")
 
 		return super().setProperties()
+class _InsertLocation(Command):
+	def GetResources(self):
+		return {
+			"Title":"Insert location",
+			"Tooltip":"Insert location",
+		}
+
+	def IsActive(self) -> bool:
+		return True
+	
+	def Parameter(self):
+		return [ObjectBase]
+	
+	def Activated(self,obj):
+		doc = obj.Document
+		group = obj.PositionData
+		if not group:
+			group = doc.addObject("ObjectGroup",'Position')
+			obj.PositionData = group
+		
+		newe_obj = doc.addObject("ObjectCarItem",'test demo')
+		history = group.Children.copy()
+		history.append(newe_obj)
+		group.Children = history
+		return obj.tree_view(False)
+	
+Core.cmd.add("InsertLocation",_InsertLocation())
+
 main = MainObject()
-main.add(ObjectCart)
-main.add(ObjectCartItem)
+main.add(ObjectCar)
+main.add(ObjectCarItem)

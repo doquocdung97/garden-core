@@ -8,7 +8,9 @@ class Method:
 
 	def __call__(self, *args: Any, **kwds: Any) -> Any:
 		self.__new_callback(self.__name, *args, **kwds)
-		return self.__callback(*args, **kwds)
+		data = self.__callback(*args, **kwds)
+		self.__new_callback(f"{self.__name}_after", data, *args, **kwds)
+		return data
 
 	def __repr__(self) -> str:
 		return str(self.__callback)
@@ -42,7 +44,7 @@ class EventObserver:
 		self.__observers.clear()
 
 	# Trigger events.
-	def __trigger(self, name, *args, **kwds):
+	def __trigger(self, name, data = None, *args, **kwds):
 		# Run all the functions that are saved.
 		allevent = 'allObserver'
 		try:
@@ -55,14 +57,15 @@ class EventObserver:
 							callback = func.__getattribute__(func_name)
 							if callable(callback):
 								if func_name == allevent:
-									callback(self,name,*args, **kwds)
+									callback(self,name,data,*args, **kwds)
 								else:
-									callback(self,*args, **kwds)
+									callback(self,data,*args, **kwds)
 		except Exception as ex:
 			print(ex)
 
 	def __getattribute__(self, name):
 		attr = super().__getattribute__(name)
-		if check_func_observer(attr,name,super().__getattribute__("OBSERVERS")):
+		OBSERVERS = super().__getattribute__("OBSERVERS")
+		if check_func_observer(attr,name,OBSERVERS):
 			return Method(name, attr, self.__trigger)
 		return attr

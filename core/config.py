@@ -17,8 +17,10 @@ class _Config:
   def get(self,name:str,default = None):
     val = self.__data.get(name,default)
     return val
-  def set(self,name:str,val):
+  def set(self,name:str,val,save=False):
     self.__data[name] = val
+    if save:
+      self.save()
   def delete(self,name:str):
     if self.__data.get(name):
       self.__data.pop(name)

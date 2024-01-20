@@ -4,6 +4,7 @@ from .schema import Document,DocumentObserver,Property
 from ..common.scalar import ObjectField
 from core import Core
 from ...redis import ObserverGraphql
+from ..common.scalar import ObjectField
 class _Query(graphene.ObjectType):
 	documents = graphene.Field(
 			graphene.List(Document),
@@ -12,9 +13,27 @@ class _Query(graphene.ObjectType):
 			Document,
 			name = graphene.Argument(graphene.String, required=True),
 	)
+	documentTree = graphene.Field(
+			ObjectField,
+			namedoc = graphene.Argument(graphene.String, required=True),
+			nameobject = graphene.Argument(graphene.String),
+	)
 	
 	def resolve_documents(self, info):
 		return []
+	
+	def resolve_documentTree(self, info, namedoc, nameobject = None):
+		doc = Core.get(namedoc)
+		if doc:
+			if nameobject:
+				obj = doc.getObjectByName(nameobject)
+				if obj:
+					return obj.tree_view(False)
+				else:
+					return None
+			return doc.tree_view()
+		return None
+	
 	def resolve_document(self, info,name):
 		doc = Core.get(name)
 		if doc:
@@ -31,7 +50,7 @@ class _Mutation(graphene.ObjectType):
 		pass
 class _Subscription(graphene.ObjectType):
 		documentObserver = graphene.Field(DocumentObserver,name=graphene.Argument(graphene.String,required=True))
-	
+
 		def resolve_documentObserver(root, info,name):
 			pubsub = ObserverGraphql.PubSubDoc(name)
 			if not pubsub:

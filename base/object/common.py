@@ -64,6 +64,7 @@ class ObjectBase(HanlderProperty):
 		
 	def restore(self,reader):
 		self.restoreProperty(reader["propertys"])
+		self.setProperties()
 
 	def IsChange(self):
 		return self.__isChange
@@ -126,8 +127,8 @@ main = MainObject()
 
 class ObjectGroup(ObjectBase):
 	def setProperties(self):
-		if not self.checkNameInProperty("Child"):
-			self.addProperty("PropertyObjects","Child")
+		if not self.checkNameInProperty("Children"):
+			self.addProperty("PropertyObjects","Children")
 		return super().setProperties()
 	
 main.add(ObjectBase)

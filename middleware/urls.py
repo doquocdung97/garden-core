@@ -55,15 +55,19 @@ def test(request):
 		document.Label = "test demo"
 		# media = document.addMedia('./README.md',"label requirement")
 		# media1 = document.addMedia('./install.bat',"install")
-		# obj = document.addObject('ObjectBase',"Furture")
+		obj = document.addObject('ObjectBase',"Furture")
+		obj1 = document.addObject('ObjectBase',"FurtureTest")
 		# obj.Label = "Furture_1 demo test"
 		# Furture_1 = document.addObject('ObjectSchedule',"Furture")
 		# Furture_1.addProperty("PropertyFloat","Datas")
 		# Furture_1.Datas = document.Parameter.ParameterFloat
 
-		car = document.addObject('ObjectCart',"Car")
+		car = document.addObject('ObjectCar',"Car")
+		group  = document.addObject('ObjectGroup',"Group")
 		camera = document.addObject("ObjectCameraBase","CameraBase")
-
+		group.Children = [car,obj]
+		car.Camera = camera
+		
 		# obj.addProperty("PropertyStrings","Texts")
 		# obj.Texts = ["1","2","3"]
 
@@ -90,10 +94,10 @@ def test(request):
 	# main = MainProperty()
 	data = {
 		# "typeproperty":[name for name in main.get()],
-		"document":document.toJSON()
+		"document":document.tree_view()
 	}
 	return JsonResponse(data)
-test(None)
+# test(None)
 def update(request):
 	time = request.GET.get('time', None)
 	document = Core.get('test')

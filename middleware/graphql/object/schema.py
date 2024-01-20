@@ -9,4 +9,5 @@ class Object(ParentProperty):
 
 class ObjectObserver(graphene.ObjectType):
 	name = graphene.String()
+	uuid = graphene.UUID()
 	property = graphene.Field(Property)

@@ -1,15 +1,43 @@
 import graphene,redis,asyncio,json
 from typing import Any
 from ..property.schema import Property
-from ..object.schema import ObjectObserver
+from ..object.schema import ObjectObserver,Object
 from ..common.scalar import ObjectField
 from core import Core
 from ...redis import ObserverGraphql
 class _Query(graphene.ObjectType):
-	test = graphene.String()
+	objects = graphene.Field(graphene.List(Object),
+													namedoc=graphene.Argument(graphene.String,required=True),
+													nameobjects=graphene.Argument(graphene.List(graphene.String)))
+	object = graphene.Field(Object,
+													namedoc=graphene.Argument(graphene.String,required=True),
+													nameobject=graphene.Argument(graphene.String,required=True))
 
+	def resolve_object(root, info,namedoc, nameobject):
+		doc = Core.get(namedoc)
+		if doc:
+			obj = doc.getObjectByName(nameobject)
+			if obj:
+				return obj.toJSON()
+		return None
+	
+	def resolve_objects(root, info,namedoc, nameobjects = None):
+		doc = Core.get(namedoc)
+		if doc:
+			objs = []
+			if nameobjects:
+				for nameobject in nameobjects:
+					obj = doc.getObjectByName(nameobject)
+					if obj:
+						objs.append(obj.toJSON())
+			else:
+				for obj in doc.Objects:
+					objs.append(obj.toJSON())
+			return objs
+		return None
 class _Mutation(graphene.ObjectType):
-	test = graphene.String()
+	createObject = graphene.String()
+	deleteObject = graphene.String()
 	
 class _Subscription(graphene.ObjectType):
 		propertyByObjectRealtime = graphene.Field(ObjectField,

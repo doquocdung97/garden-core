@@ -2,7 +2,7 @@ from common import formatName
 from common.filehelper import FileHelper
 import uuid
 from os import path
-
+from constants import VARIATIONS
 class Media:
 	
 	def __init__(self,doc, pathfile,str_uuid:str = None) -> None:
@@ -17,6 +17,7 @@ class Media:
 			self.__uuid = str(uuid.uuid4())
 		else:
 			self.__uuid = str_uuid
+	
 	@property
 	def FileName(self):
 		return self.__helper.toFileName(True)
@@ -56,6 +57,14 @@ class Media:
 			"pathfile": self.__pathfile,
 			"uuid":self.__uuid,
 			"name":self.Name
+		}
+	
+	def tree_view(self) -> dict:
+		return {
+			"uuid":self.__uuid,
+			"name":self.Name,
+			# "theme":VARIATIONS.MEDIA,
+			"children":[]
 		}
 
 	@staticmethod

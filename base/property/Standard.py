@@ -6,6 +6,8 @@ from .common import *
 import os
 from common import validate_time
 from base.media import Media
+from datetime import time
+
 main = MainProperty()
 
 class PropertyString(PropertyBase):
@@ -21,6 +23,8 @@ class PropertyInteger(PropertyBase):
 				return 0
 		def checkValue(self,val):
 				return isinstance(val,int)
+		def convert(self, val):
+			return int(val)
 main.add(PropertyInteger,True,True,True)
 
 class PropertyBool(PropertyBase):
@@ -40,6 +44,8 @@ class PropertyFloat(PropertyBase):
 			if isinstance(val,int):
 				val = float(val)
 			return super().setValue(val)
+		def convert(self, val):
+			return float(val)
 main.add(PropertyFloat,True,True)
 
 class PropertyMedia(PropertyBase):
@@ -84,7 +90,7 @@ main.add(PropertyMedia,True)
 
 class PropertyObject(PropertyBase):
 		def checkValue(self,val:ObjectBase)->bool:
-				return isinstance(val,ObjectBase)
+				return isinstance(val,ObjectBase) or val is None
 		
 		def getValue(self, isSave=False):
 				value = super(PropertyObject,self).getValue(isSave)
@@ -99,7 +105,17 @@ class PropertyObject(PropertyBase):
 				super(PropertyObject,self).setValue(val)
 
 		def toJSON(self):
-			return self.save()
+			data = self.save()
+			val = self.getValue()
+			
+			if isinstance(val,list):
+				data['value'] = [{"name":v.Name,"uuid":v.UUID}  for v in val]
+			elif val:
+				data['value'] = {
+					"name":val.Name,
+					"uuid":val.UUID
+				} 
+			return data
 		
 		def convert(self,val):
 				doc = self.object.Document
@@ -114,7 +130,6 @@ class PropertyObject(PropertyBase):
 			return pro
 
 main.add(PropertyObject,True)
-from datetime import time
 
 class PropertyTime(PropertyBase):
 		def valueDefault(self):
@@ -219,3 +234,27 @@ class PropertyDocument(PropertyBase):
 		return data
 	
 main.add(PropertyDocument)
+
+class PropertyFunction(PropertyBase):
+	def __init__(self, obj, name, group, description, status, type, attribute):
+		super().__init__(obj, name, group, description, status, type, attribute)
+		self.__func = None
+	def checkValue(self, val):
+		return ismethod(val) or isfunction(val)
+	
+	def setValue(self, val):
+		self.__func = val
+
+	def toJSON(self):
+		data = super().toJSON()
+		del data["value"]
+		return data
+
+	def save(self):
+		data = super().save()
+		del data['value']
+		return data
+
+	def getValue(self, isSave=False):
+		return self.__func
+main.add(PropertyFunction)

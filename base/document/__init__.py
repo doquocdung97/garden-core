@@ -12,11 +12,12 @@ from constants import VARIATIONS
 from common import group_duplicates
 from ..parameter import Parameter
 from common.event import EventObserver
+from constants import VARIATIONS
+from ..property import PropertyBase
 class Document(HanlderProperty,EventObserver):
-	OBSERVERS = ["addObject"]
+	OBSERVERS = ["addObject","deleteObject"]
 	def __init__(self):
 		super().__init__()
-		
 		self.__isChange = False
 		self.__isBackup = False
 		self.__objects:list[ObjectBase] = []
@@ -28,7 +29,7 @@ class Document(HanlderProperty,EventObserver):
 		self.UUID = str(uuid.uuid4())
 		self.__name = str()
 		self.__tempdir = os.path.join(tempfile.gettempdir(),__project__,str(uuid.uuid4()))
-		self.Parameter = Parameter()
+		self.Parameter = Parameter(self)
 
 	def init(self):
 		self.__log = loggerHelper(str(self))
@@ -51,7 +52,7 @@ class Document(HanlderProperty,EventObserver):
 			self.addProperty('PropertyBool','AutoOpen')
 			self.AutoOpen = True
 		if not "FileName" in self.propertys:
-			self.addProperty('PropertyString','FileName')
+			self.addProperty('PropertyString','FileName',status=2)
 
 	@property
 	def TempDir(self):
@@ -142,6 +143,48 @@ class Document(HanlderProperty,EventObserver):
 		self.__isChange = status
 		self.__isBackup = status
 
+	def tree_view(self):
+		objs = []
+		commands = {}
+		commands[self.get_type()] = self.get_command()
+		for obj in self.Objects:
+			child = obj.tree_view()
+			if child:
+				objs.append(child)
+			obj_type = obj.get_type()
+			obj_cmd = obj.get_command()
+			if not obj_type in commands and len(obj_cmd) > 0:
+				commands[obj_type] = obj_cmd
+
+		medias = []
+		for media in self.Medias:
+			medias.append(media.tree_view())
+		return {
+			'uuid':self.UUID,
+			'type':self.__class__.__name__,
+			'name':self.Name, 
+			'theme':VARIATIONS.DOCUMENT,
+			'commands':commands,
+			'children':[
+				{
+					'uuid':VARIATIONS.PARAMETER,
+					'name':VARIATIONS.PARAMETER,
+					'theme':VARIATIONS.PARAMETER
+				},
+				{
+					'uuid':VARIATIONS.OBJECT,
+					'name':VARIATIONS.OBJECT, 
+					'theme':VARIATIONS.OBJECT,
+					'children':objs
+				},
+				{
+					'uuid':VARIATIONS.MEDIA,
+					'name':VARIATIONS.MEDIA, 
+					'theme':VARIATIONS.MEDIA,
+					'children':medias
+				}
+			],
+		}
 	# @property
 	# def FileName(self):
 	# 	# return self.__filename
@@ -162,7 +205,10 @@ class Document(HanlderProperty,EventObserver):
 		docs = Core.config.get("AutoOpen",[])
 		if self.AutoOpen:
 			docs.append(self.FileName)
-			Core.config.set("AutoOpen",group_duplicates(docs))
+			Core.config.set("AutoOpen",group_duplicates(docs),True)
+		elif len(docs) and self.FileName in docs:
+			docs.remove(self.FileName)
+			Core.config.set("AutoOpen",group_duplicates(docs),True)
 		return data
 	
 	def AutoSave(self):
@@ -251,7 +297,7 @@ class Document(HanlderProperty,EventObserver):
 			"version":__version__,
 			"type":self.__class__.__name__,
 			'uuid':self.UUID,
-			'parameter':self.Parameter.toJSON(),
+			'parameters':self.Parameter.toJSON(),
 			'propertys':propertys,
 			'medias': medias,
 			'objects': objects
@@ -277,8 +323,6 @@ class Document(HanlderProperty,EventObserver):
 			self.__tempdir = render['tempdir']
 			self.UUID = render['uuid']
 			self.Name = render['name']
-			self.Parameter.restoreProperty(render['parameter'])
-			self.restoreProperty(render["propertys"])
 
 			objs = []
 			for object in render['objects']:
@@ -295,6 +339,9 @@ class Document(HanlderProperty,EventObserver):
 				obj.restore(data)
 				obj.init()
 				obj.onDocumentRestoredAfter(data)
+				
+			self.Parameter.restoreProperty(render['parameter'])
+			self.restoreProperty(render["propertys"])
 			self.__set_change(False)
 		except Exception as ex:
 			# self.__log.error(f"restore document error: {ex}")
@@ -321,6 +368,13 @@ class Document(HanlderProperty,EventObserver):
 		self.__set_change(True)
 		pass
 
+	def onChangedParameter(self, prop:str):
+		self.__set_change(True)
+		pass
+
+	def onCreateParameter(self,pro:PropertyBase):
+		pass
+	
 	def getObjectByName(self,name:str)->ObjectBase|None:
 		obj = self.__dict__.get(name)
 		if isinstance(obj,ObjectBase):
@@ -337,11 +391,15 @@ class Document(HanlderProperty,EventObserver):
 			if obj.onDelete():
 				delattr(self,obj.Name)
 				self.__objects.remove(obj)
+				obj.__del__()
+				del obj
 				self.__set_change(True)
+	
 	def deleteMedia(self,media:Media):
 		media.onDelete()
 		self.__medias.remove(media)
 		self.__set_change(True)
+	
 	def onDelete(self):
 		for index in range(len(self.__medias)):
 			media = self.__medias[0]
@@ -356,6 +414,10 @@ class Document(HanlderProperty,EventObserver):
 
 	def __repr__(self):
 		return str(f"{self.__class__.__name__}({self.Name})")
+	
+	def get_command(self):
+		return ["SaveDocument"]
+	
 class _MainDocument:
 	__documents = {}
 

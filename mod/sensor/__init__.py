@@ -8,8 +8,8 @@ main = MainProperty()
 class _WaterFlow(Command):
 	def GetResources(self):
 		return {
-			"Title","Water flow",
-			"Tooltip","Water flow",
+			"Title":"Water flow",
+			"Tooltip":"Water flow",
 		}
 
 	def IsActive(self) -> bool:
@@ -25,7 +25,7 @@ class _WaterFlow(Command):
 class _Temperature(Command):
 	def GetResources(self):
 		return {
-			"Title","Temperature",
+			"Title":"Temperature",
 		}
 
 	def IsActive(self) -> bool:

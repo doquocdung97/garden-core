@@ -4,7 +4,7 @@ import serial
 class _ListSerial(Command):
 	def GetResources(self):
 		return {
-			"Title","Serials",
+			"Title":"Serials",
 		}
 
 	def IsActive(self) -> bool:
@@ -19,7 +19,7 @@ class _ListSerial(Command):
 class _ConnectSerial(Command):
 	def GetResources(self):
 		return {
-			"Title","Serials",
+			"Title":"Serials",
 		}
 
 	def IsActive(self) -> bool:

@@ -10,6 +10,9 @@ from rx import Observable
 from redis.client import PubSub, PubSubWorkerThread
 from redis._parsers.encoders import Encoder
 from typing import Callable, Optional, Union
+from base.document import Document
+from base.object import ObjectBase
+from base.property import PropertyBase
 class ObserverDocument:
 	def __init__(self,name:str,redis:Redis = None) -> None:
 		self.__redis = redis
@@ -25,10 +28,11 @@ class ObserverDocument:
 		}
 		self.__redis.publish(self.__name,json.dumps(data))
 
-	def onChangedObject(self,doc,obj, prop:str):
+	def onChangedObject(self,doc:Document,obj:ObjectBase, prop:str):
 		pro = obj.getProperty(prop)
 		frame = inspect.currentframe()
 		data_obj = {
+				"uuid":obj.UUID,
 				"name":obj.Name,
 				"property":pro.toJSON()
 			}
@@ -40,6 +44,47 @@ class ObserverDocument:
 		self.__redis.publish(f"{self.__name}_{obj.Name}",json.dumps(data_obj))
 		self.__redis.publish(self.__name,json.dumps(data))
 
+	def deleteObject(self,doc:Document,obj:ObjectBase):
+		data = {
+			"name":doc.Name,
+			"event":"deleteObject",
+			"object":{
+				"uuid":obj.UUID,
+				"name":obj.Name,
+			}
+		}
+		self.__redis.publish(self.__name,json.dumps(data))
+	
+	def onChangedParameter(self,doc:Document,prop:str):
+		pro = doc.Parameter.getProperty(prop)
+		frame = inspect.currentframe()
+		data = {
+			"event":frame.f_code.co_name,
+			"name":doc.Name,
+			"parameter":pro.toJSON()
+		}
+		self.__redis.publish(self.__name,json.dumps(data))
+
+	def onCreateParameter(self,doc:Document,pro:PropertyBase):
+		frame = inspect.currentframe()
+		data = {
+			"event":frame.f_code.co_name,
+			"name":doc.Name,
+			"parameter":pro.toJSON()
+		}
+		self.__redis.publish(self.__name,json.dumps(data))
+	
+	def addObject_after(self,doc:Document,obj:ObjectBase,type:str,name:str):
+		frame = inspect.currentframe()
+		data = {
+			"event":frame.f_code.co_name.split('_')[0],
+			"name":doc.Name,
+			"object":{
+				"uuid":obj.UUID,
+				"name":obj.Name,
+			}
+		}
+		self.__redis.publish(self.__name,json.dumps(data))
 class CustumPubSub(PubSub):
 	def __init__(self, connection_pool, shard_hint=None, ignore_subscribe_messages: bool = False, encoder: Encoder | None = None, push_handler_func: Callable[[str], None] | None = None):
 		super().__init__(connection_pool, shard_hint, ignore_subscribe_messages, encoder, push_handler_func)
