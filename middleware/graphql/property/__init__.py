@@ -6,7 +6,6 @@ from ..common.scalar import ObjectField
 from ..common.schema import ResultBase
 from .schema import Property,InputProperty,PropertyResultBase
 from core import Core
-from constants import VARIATIONS
 # from ...redis import ObserverGraphql
 class _Query(graphene.ObjectType):
 	test = graphene.String()
@@ -29,12 +28,6 @@ class _Mutation(graphene.ObjectType):
 		try:
 			doc = Core.get(namedoc)
 			if doc:
-				# if isinstance(value,dict):
-				# 	if value.get("theme") == VARIATIONS.MEDIA:
-				# 		value = doc.getMediaByUUID(value.get("uuid"))
-				# 	elif value.get("theme") == VARIATIONS.OBJECT:
-				# 		value = doc.getObjectByUUID(value.get("uuid"))
-				 
 				if nameobject:
 					obj = doc.getObjectByName(nameobject)
 					if obj:
@@ -68,9 +61,9 @@ class _Mutation(graphene.ObjectType):
 			model.success = False
 			model.code = 5
 			model.message = str(ex)
-			return model
-		model.success = False
-		model.code = 2
+		# 	return model
+		# model.success = False
+		# model.code = 2
 		return model
 	
 	def resolve_createParameter(root, info,doc,input):

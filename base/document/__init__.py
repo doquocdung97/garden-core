@@ -8,11 +8,10 @@ import uuid,tempfile,os,json
 from core._version import __project__, __version__
 from ..media import Media
 from zipfile import ZipFile
-from constants import VARIATIONS
+from constants import VARIATIONS,CONSTANTS
 from common import group_duplicates
 from ..parameter import Parameter
 from common.event import EventObserver
-from constants import VARIATIONS
 from ..property import PropertyBase
 class Document(HanlderProperty,EventObserver):
 	OBSERVERS = ["addObject","deleteObject"]
@@ -30,6 +29,7 @@ class Document(HanlderProperty,EventObserver):
 		self.__name = str()
 		self.__tempdir = os.path.join(tempfile.gettempdir(),__project__,str(uuid.uuid4()))
 		self.Parameter = Parameter(self)
+		self.__media = Media(self)
 
 	def init(self):
 		self.__log = loggerHelper(str(self))
@@ -91,12 +91,6 @@ class Document(HanlderProperty,EventObserver):
 			obj._cloneProperty(newobj)
 		return doc
 	
-	# @attr.setter
-	# def attr(self, value):
-	#     self.__attr = value
-	# def Objects(self):
-	#     return self.__objects
-	
 	def addObject(self,type,name) ->ObjectBase|None:
 		mainobject = MainObject()
 		object = mainobject.get(type)
@@ -114,7 +108,7 @@ class Document(HanlderProperty,EventObserver):
 	
 	def addMedia(self,path:str,name:str = None)->Media|None:
 		file = FileHelper(path)
-		if file.isNone():
+		if not file.isNone():
 			file_name = file.toFileName(True)
 			file.copy(os.path.join(self.TempDir,file_name))
 			media = Media(self,file_name)
@@ -185,14 +179,7 @@ class Document(HanlderProperty,EventObserver):
 				}
 			],
 		}
-	# @property
-	# def FileName(self):
-	# 	# return self.__filename
-	# 	return f"{self.__name}.zip"
-	
-	# @FileName.setter
-	# def FileName(self,val):
-	# 	self.__filename = val
+
 	def saveAs(self,filename = None):
 		self.FileName = filename
 		return self.save()
@@ -228,17 +215,25 @@ class Document(HanlderProperty,EventObserver):
 		# 	raise ValueError(f"save document error: FileName not found")
 		try:
 			data = self.dataSave()
+			f = open(os.path.join(self.TempDir, CONSTANTS.FILE_DATA), "wb")
+			f.write(json.dumps(data, indent=2).encode("utf-8"))
+			f.close()
 			with ZipFile(filename,'w') as zf:
-				with zf.open("data.json", "w") as c:
-					c.write(json.dumps(data, indent=2).encode("utf-8"))
 				for media in self.__medias:
 					zf.write(media.PathFile,media.FileName)
+
+				for root, dirs, files in os.walk(self.TempDir):
+					for file in files:
+						filePath = os.path.join(root, file)
+						inZipPath = filePath.replace(self.TempDir, "", 1).lstrip("\\/")
+						zf.write(filePath, inZipPath)
+
 				zf.close()
 			if not backup:
 				self.__set_change(False)
 				if self.__file_name_backup:
 					filehelper = FileHelper(self.__file_name_backup)
-					if filehelper.isNone():
+					if not filehelper.isNone():
 						filehelper.delete()
 				
 			return data
@@ -275,10 +270,6 @@ class Document(HanlderProperty,EventObserver):
 		return data
 	
 	def toJSON(self):
-		# if not self.FileName:
-		#     if not self.saveAs():
-		#         return
-		
 		propertys = []
 		for property in self.propertys:
 			dataproperty = self.__dict__[property].toJSON()
@@ -360,6 +351,7 @@ class Document(HanlderProperty,EventObserver):
 
 	def onBeforeChange(self,prop):
 		pass
+	
 	def onChanged(self, prop):
 		self.__set_change(True)
 		pass

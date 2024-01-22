@@ -1,13 +1,12 @@
 
 from typing import Any
 from base.object import ObjectBase
-from base.common import Vector,Color
+from base.common import Vector,Color,File,FileObject
 from .common import *
 import os
 from common import validate_time
 from base.media import Media
 from datetime import time
-
 main = MainProperty()
 
 class PropertyString(PropertyBase):
@@ -258,3 +257,51 @@ class PropertyFunction(PropertyBase):
 	def getValue(self, isSave=False):
 		return self.__func
 main.add(PropertyFunction)
+
+class PropertyFile(PropertyBase):
+	def valueDefault(self):
+		return None
+	
+	def checkValue(self,val:File):
+		return isinstance(val,File) or isinstance(val,FileObject) or val == None
+	
+	def convert(self, val):
+		obj = self.object
+		if not isinstance(val,str):
+			path = os.path.join(obj.UUID,val.name)
+			f = open(os.path.join(obj.Document.TempDir,path), "wb")
+			f.write(val.read())
+			f.close()
+			val = path
+		return FileObject.parse(obj,val)
+
+	def getValue(self, isSave=False):
+		if isSave:
+			val:FileObject = super().getValue()
+			if val:
+				if isinstance(val,list):
+					return [v.save() for v in val]
+				return val.save()
+		return super().getValue(isSave)
+
+	def toJSON(self):
+		jsondata = super().toJSON()
+		val:FileObject = super().getValue()
+		data = None
+		if val:
+				if isinstance(val,list):
+					data = [v.toJSON() for v in val]
+				data = val.toJSON()
+		jsondata["value"] = data
+		return jsondata
+	
+	def setValue(self, val:File):
+		old_val = self.getValue()
+		if isinstance(old_val,FileObject):
+			old_val.delete()
+		if val and isinstance(val,File):
+			val = FileObject(self.object,val)
+		return super().setValue(val)
+
+		
+main.add(PropertyFile)
