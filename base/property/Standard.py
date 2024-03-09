@@ -5,7 +5,7 @@ from base.common import Vector,Color,File,FileObject
 from .common import *
 import os
 from common import validate_time
-from base.media import Media
+from base.media import MediaBase
 from datetime import time
 main = MainProperty()
 
@@ -48,34 +48,38 @@ class PropertyFloat(PropertyBase):
 main.add(PropertyFloat,True,True)
 
 class PropertyMedia(PropertyBase):
+		def checkValue(self,val:MediaBase)->bool:
+				return isinstance(val,MediaBase) or val is None
+		
 		def getValue(self, isSave=False):
 				value = super(PropertyMedia,self).getValue(isSave)
+				
 				if isSave and value:
 						if isinstance(value,list):
 										return [v.UUID for v in value]
 						return value.UUID
 				return value
-				
-		def checkValue(self,val):
-				return isinstance(val,Media)
 		
-		def toJSON(self):
-			data = super(PropertyMedia,self).toJSON()
-			val = super(PropertyMedia,self).getValue()
-			if val:
-				if isinstance(val,list):
-					data["value"] = [v.toJSON() for v in val]
-				else:
-					data["value"] = val.toJSON()
-			
-			return data
-			
-		def convert(self, val):
-				doc = self.object.Document
-				return doc.getMediaByUUID(val)
+		def setValue(self, val):
+				super(PropertyMedia,self).setValue(val)
 
-		def toString(self):
-				return self.__Value
+		def toJSON(self):
+			data = self.save()
+			val = self.getValue()
+			
+			if isinstance(val,list):
+				data['value'] = [{"name":v.Name,"uuid":v.UUID}  for v in val]
+			elif val:
+				data['value'] = {
+					"name":val.Name,
+					"uuid":val.UUID
+				} 
+			return data
+		
+		def convert(self,val):
+				doc = self.object.Document
+				media = doc.Media
+				return media.getObjectByUUID(val)
 		
 		def clone(self):
 			pro = super().clone()
@@ -269,6 +273,9 @@ class PropertyFile(PropertyBase):
 		obj = self.object
 		if not isinstance(val,str):
 			path = os.path.join(obj.UUID,val.name)
+			fordel_object = os.path.join(obj.Document.TempDir,obj.UUID)
+			if not os.path.exists(fordel_object):
+				os.makedirs(fordel_object)
 			f = open(os.path.join(obj.Document.TempDir,path), "wb")
 			f.write(val.read())
 			f.close()

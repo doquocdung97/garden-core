@@ -1,7 +1,7 @@
 import graphene,redis,asyncio,json
 from typing import Any
 from ..property.schema import Property
-from ..object.schema import ObjectObserver,Object
+from .schema import ObjectObserver,Object,ObjectModeEnum
 from ..common.scalar import ObjectField
 from core import Core
 from ...redis import ObserverGraphql
@@ -11,12 +11,18 @@ class _Query(graphene.ObjectType):
 													nameobjects=graphene.Argument(graphene.List(graphene.String)))
 	object = graphene.Field(Object,
 													namedoc=graphene.Argument(graphene.String,required=True),
+													nameobject=graphene.Argument(graphene.String,required=True),
+													mode=graphene.Argument(ObjectModeEnum,required=True))
+	
+	objectChildren = graphene.Field(graphene.List(Object),
+													namedoc=graphene.Argument(graphene.String,required=True),
 													nameobject=graphene.Argument(graphene.String,required=True))
-
-	def resolve_object(root, info,namedoc, nameobject):
+	
+	def resolve_object(root, info,namedoc, nameobject,mode):
 		doc = Core.get(namedoc)
 		if doc:
-			obj = doc.getObjectByName(nameobject)
+			mode = doc.getMode(mode)
+			obj = mode.getObjectByName(nameobject)
 			if obj:
 				return obj.toJSON()
 		return None
@@ -33,6 +39,17 @@ class _Query(graphene.ObjectType):
 			else:
 				for obj in doc.Objects:
 					objs.append(obj.toJSON())
+			return objs
+		return None
+	
+	def resolve_objectChildren(root, info,namedoc, nameobject = None):
+		doc = Core.get(namedoc)
+		if doc:
+			objs = []
+			obj = doc.getObjectByName(nameobject)
+			if obj:
+				for child in obj.OutListView:
+					objs.append(child.toJSON())
 			return objs
 		return None
 class _Mutation(graphene.ObjectType):

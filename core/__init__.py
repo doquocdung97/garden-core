@@ -10,6 +10,13 @@ from base.document import _MainDocument
 from base.object import ObjectBase
 from zipfile import ZipFile
 from .config import _Config
+class IsNone:
+	def __init__(self,data) -> None:
+		self.__data = data
+
+	@property
+	def Meta(self):
+		return self.__data
 class Command:
 	def Parameter(self):
 		"""
@@ -42,11 +49,15 @@ class _MainCommand:
 		param = command.Parameter()
 		if not param or param and len(param) == len(args):
 			for index,arg in enumerate(param):
-				if not isinstance(args[index],arg):
+				if isinstance(arg,IsNone):
+					if args[index] and not isinstance(args[index],arg.Meta):
+						return False
+				elif not isinstance(args[index],arg):
 					return False
 		else:
 			return False
 		return True
+	
 	def run(self, name, *args):
 		command = self.get(name)
 		if command and command.IsActive():
@@ -291,3 +302,52 @@ class _createMedia(Command):
 		pass
 	
 Core.cmd.add("CreateMedia",_createMedia())
+
+class _createFolder(Command):
+	def GetResources(self):
+		return {
+			"Title":"Create Folder",
+			"Tooltip":"Create Folder",
+		}
+
+	def IsActive(self) -> bool:
+		return True
+	
+	def Parameter(self):
+		return (
+			[Document,IsNone(ObjectBase)]
+		)
+	
+	def Activated(self,doc:Document,obj:ObjectBase = None):
+		if doc:
+			if obj:
+				new_obj = doc.Media.add("ForderMedia","Test")
+				history = obj.Children.copy()
+				history.append(new_obj)
+				obj.Children = history
+			else:
+				doc.Media.add("ForderMedia","Test")
+	
+class _createFile(Command):
+	def GetResources(self):
+		return {
+			"Title":"Create File",
+			"Tooltip":"Create File",
+		}
+
+	def IsActive(self) -> bool:
+		return True
+	
+	def Parameter(self):
+		return [ObjectBase]
+	
+	def Activated(self,obj:ObjectBase):
+		if obj:
+			doc = obj.Document
+			new_obj = doc.add("FileMedia","File")
+			history = obj.Children.copy()
+			history.append(new_obj)
+			obj.Children = history
+	
+Core.cmd.add("CreateFile",_createFile())
+Core.cmd.add("CreateFolder",_createFolder())

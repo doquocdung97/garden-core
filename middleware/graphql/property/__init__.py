@@ -5,6 +5,7 @@ from .schema import Property
 from ..common.scalar import ObjectField
 from ..common.schema import ResultBase
 from .schema import Property,InputProperty,PropertyResultBase
+from ..object.schema import ObjectModeEnum
 from core import Core
 # from ...redis import ObserverGraphql
 class _Query(graphene.ObjectType):
@@ -21,15 +22,17 @@ class _Mutation(graphene.ObjectType):
 													        nameobject=graphene.Argument(graphene.String),
 																	nameproperty=graphene.Argument(graphene.String,required=True),
 																	value=graphene.Argument(ObjectField,required=True),
+																	mode=graphene.Argument(ObjectModeEnum,required=True),
 																	parameter=graphene.Argument(graphene.Boolean,default_value=False))
 	
-	def resolve_updateProperty(root, info,namedoc,nameproperty,value, nameobject = None,parameter = False):
+	def resolve_updateProperty(root, info,namedoc,nameproperty,value,mode, nameobject = None,parameter = False):
 		model = PropertyResultBase()
 		try:
 			doc = Core.get(namedoc)
 			if doc:
 				if nameobject:
-					obj = doc.getObjectByName(nameobject)
+					mode = doc.getMode(mode)
+					obj = mode.getObjectByName(nameobject)
 					if obj:
 						pro = obj.getProperty(nameproperty)
 						if pro:

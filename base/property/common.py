@@ -147,7 +147,12 @@ def PropertyListBase(target):
 								return True
 						return False
 				def convert(self, vals):
-						return [super(PropertyListBase,self).convert(val) for val in vals]
+						datas = []
+						for val in vals:
+							data = super(PropertyListBase,self).convert(val)
+							if data:
+								datas.append(data)
+						return datas
 		
 				def __repr__(self):
 						# val = super(PropertyListBase,self).toString()
@@ -237,7 +242,7 @@ def PropertyViewBase(target):
 			if hasattr(self,'func_value') and (ismethod(self.func_value) or isfunction(self.func_value)):
 				self.setValue(self.func_value())
 				
-			return super(PropertyViewBase,self).getValue(True)
+			return super(PropertyViewBase,self).getValue(isSave)
 		
 		def toJSON(self):
 			data = super().toJSON()

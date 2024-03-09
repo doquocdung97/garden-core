@@ -11,5 +11,10 @@ class VARIATIONS:
 	# 
 	DOCUMENT = "document"
 	OBJECT = "object"
+	OBJECTS = "objects"
 	MEDIA = "media"
+	MEDIAS = "medias"
 	PARAMETER = "parameter"
+	PARAMETERS = "parameters"
+	PROPERTY = "property"
+	PROPERTYS = "propertys"

@@ -1,7 +1,7 @@
 import graphene
 from .schema import ResultCommand,BaseResultCode,Command,Config
 from ..common.scalar import ObjectField
-from core import Core
+from core import Core,IsNone
 from base.document import _MainDocument
 from base.object import MainObject
 from base.property import MainProperty
@@ -21,18 +21,19 @@ class _Mutation(graphene.ObjectType):
 				params = []
 				for param in parameters:
 					if isinstance(param,dict):
-						if param.get("type") == "object":
+						if param.get("type") in ["object","media"]:
 							doc = None
 							if document:
 								doc = Core.get(document)
 							if doc:
-								obj = doc.getObjectByName(param.get("name"))
+								mode = doc.getMode(param.get("type"))
+								obj = mode.getObjectByName(param.get("name"))
 								if obj:
 									params.append(obj)
 								else:
-									raise ValueError('not found object')
+									params.append(None)
 							else:
-								raise ValueError('not found document')
+								params.append(None)
 						elif param.get("type") == "document":
 							doc = None
 							if param.get("name"):
@@ -69,7 +70,13 @@ class _Query(graphene.ObjectType):
 			params = data.Parameter()
 			rowdata.args = []
 			if params and len(params) > 0:
-				rowdata.args = [obj.__name__ for obj in data.Parameter()]
+				args = []
+				for obj in data.Parameter():
+					if isinstance(obj,IsNone):
+						args.append(obj.Meta.__name__ )
+					else:
+						args.append(obj.__name__)
+				rowdata.args = args
 			rowdatas.append(rowdata)
 		return rowdatas
 	
@@ -85,7 +92,13 @@ class _Query(graphene.ObjectType):
 			params = data.Parameter()
 			rowdata.args = []
 			if params and len(params) > 0:
-				rowdata.args = [obj.__name__ for obj in data.Parameter()]
+				args = []
+				for obj in data.Parameter():
+					if isinstance(obj,IsNone):
+						args.append(obj.Meta.__name__ )
+					else:
+						args.append(obj.__name__)
+				rowdata.args = args
 			rowdatas.append(rowdata)
 		mainproperty = MainProperty()
 		maindoc = _MainDocument()
