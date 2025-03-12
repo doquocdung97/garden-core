@@ -1,4 +1,5 @@
 from base.document import Document
+from base.media import Media
 import os
 from core._version import __project__
 import uuid,tempfile,json
@@ -6,19 +7,27 @@ from .schedule import Schedule, EveryDay, EveryTime
 import time,threading,schedule
 from common import loggerHelper,check_and_create_folder_log,createAttribute
 from base.document import _MainDocument
+from base.object import ObjectBase
 from zipfile import ZipFile
 from .config import _Config
+class IsNone:
+	def __init__(self,data) -> None:
+		self.__data = data
+
+	@property
+	def Meta(self):
+		return self.__data
 class Command:
 	def Parameter(self):
 		"""
 		return [int,int,str]
 		"""
-		return None
+		return []
 	
 	def GetResources(self):
 		return {
-			"Title","",
-			"Tooltip","",
+			"Title":"",
+			"Tooltip":"",
 		}
 
 	def IsActive() -> bool:
@@ -39,17 +48,23 @@ class _MainCommand:
 	def __check_parameter(self,command:Command,*args):
 		param = command.Parameter()
 		if not param or param and len(param) == len(args):
-			for index,arg in enumerate(args):
-				if not isinstance(arg,param[index]):
+			for index,arg in enumerate(param):
+				if isinstance(arg,IsNone):
+					if args[index] and not isinstance(args[index],arg.Meta):
+						return False
+				elif not isinstance(args[index],arg):
 					return False
+		else:
+			return False
 		return True
+	
 	def run(self, name, *args):
 		command = self.get(name)
 		if command and command.IsActive():
 			if self.__check_parameter(command,*args):
 				return command.Activated(*args)
 			else:
-				raise ValueError("Parameters do not match")
+				raise ValueError("The parameters do not match")
 		return None
 
 	def get(self, name: str = None) -> Command | None:
@@ -214,3 +229,125 @@ class __Core(EventObserver):
 
 Core = __Core()
 Core.init()
+class _SaveDocument(Command):
+	def GetResources(self):
+		return {
+			"Title":"Save Document",
+			"Tooltip":"Save Document",
+		}
+
+	def IsActive(self) -> bool:
+		return True
+	
+	def Parameter(self):
+		return [Document]
+	
+	def Activated(self,doc):
+		
+		return doc.save()
+	
+Core.cmd.add("SaveDocument",_SaveDocument())
+
+class _refreshDocument(Command):
+	def GetResources(self):
+		return {
+			"Title":"Refresh Document",
+			"Tooltip":"Refresh Document",
+		}
+
+	def IsActive(self) -> bool:
+		return True
+	
+	def Parameter(self):
+		return [Document]
+	
+	def Activated(self,doc):
+		
+		return doc.save()
+	
+Core.cmd.add("RefreshDocument",_refreshDocument())
+
+class _deleteObject(Command):
+	def GetResources(self):
+		return {
+			"Title":"Delete Object",
+			"Tooltip":"Delete Object",
+		}
+
+	def IsActive(self) -> bool:
+		return True
+	
+	def Parameter(self):
+		return [ObjectBase]
+	
+	def Activated(self,obj:ObjectBase):
+		return obj.Document.deleteObject(obj)
+	
+Core.cmd.add("DeleteObject",_deleteObject())
+
+class _createMedia(Command):
+	def GetResources(self):
+		return {
+			"Title":"Create Media",
+			"Tooltip":"Create Media",
+		}
+
+	def IsActive(self) -> bool:
+		return True
+	
+	def Parameter(self):
+		return [Document,Media]
+	
+	def Activated(self, doc:Document, parent:Media = None):
+		pass
+	
+Core.cmd.add("CreateMedia",_createMedia())
+
+class _createFolder(Command):
+	def GetResources(self):
+		return {
+			"Title":"Create Folder",
+			"Tooltip":"Create Folder",
+		}
+
+	def IsActive(self) -> bool:
+		return True
+	
+	def Parameter(self):
+		return (
+			[Document,IsNone(ObjectBase)]
+		)
+	
+	def Activated(self,doc:Document,obj:ObjectBase = None):
+		if doc:
+			if obj:
+				new_obj = doc.Media.add("ForderMedia","Test")
+				history = obj.Children.copy()
+				history.append(new_obj)
+				obj.Children = history
+			else:
+				doc.Media.add("ForderMedia","Test")
+	
+class _createFile(Command):
+	def GetResources(self):
+		return {
+			"Title":"Create File",
+			"Tooltip":"Create File",
+		}
+
+	def IsActive(self) -> bool:
+		return True
+	
+	def Parameter(self):
+		return [ObjectBase]
+	
+	def Activated(self,obj:ObjectBase):
+		if obj:
+			doc = obj.Document
+			new_obj = doc.add("FileMedia","File")
+			history = obj.Children.copy()
+			history.append(new_obj)
+			obj.Children = history
+	
+Core.cmd.add("CreateFile",_createFile())
+Core.cmd.add("CreateFolder",_createFolder())

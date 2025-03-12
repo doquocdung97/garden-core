@@ -7,12 +7,15 @@ class FileHelper:
 		self.__pathfile = pathfile
 		# self. __log = loggerHelper(self.__class__.__name__)
 		pass
+	
 	def upload(self,path:str,file):
 		pass
 
 	def copy(self,destination_directory:str):
-		shutil.copy(self.__pathfile, destination_directory)
-		return FileHelper(destination_directory)
+		if not os.path.exists(destination_directory):
+			os.makedirs(destination_directory)
+		data = shutil.copy(self.__pathfile, destination_directory)
+		return FileHelper(data)
 
 	def read(self):
 		with open(self.__pathfile, 'rb') as binary_file:
@@ -20,8 +23,8 @@ class FileHelper:
 		
 	def isNone(self):
 		if os.path.exists(self.__pathfile):
-			return True
-		return False
+			return False
+		return True
 	
 	def toFileType(self):
 		file_name = os.path.basename(self.__pathfile)
@@ -45,3 +48,6 @@ class FileHelper:
 			shutil.rmtree(self.__pathfile)
 			return True
 		return False
+	
+	def get_path_file(self):
+		return self.__pathfile

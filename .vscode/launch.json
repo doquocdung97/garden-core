@@ -10,7 +10,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/main.py",
             "args": [
-                "runserver"
+                "runserver",
+                "0.0.0.0:8001"
             ],
             "django": true,
             "console": "integratedTerminal",

@@ -8,27 +8,27 @@ import uuid,tempfile,os,json
 from core._version import __project__, __version__
 from ..media import Media
 from zipfile import ZipFile
-from constants import VARIATIONS
+from constants import VARIATIONS,CONSTANTS
 from common import group_duplicates
 from ..parameter import Parameter
 from common.event import EventObserver
+from ..property import PropertyBase
 class Document(HanlderProperty,EventObserver):
-	OBSERVERS = ["addObject"]
+	OBSERVERS = ["addObject","deleteObject"]
 	def __init__(self):
 		super().__init__()
-		
 		self.__isChange = False
 		self.__isBackup = False
 		self.__objects:list[ObjectBase] = []
 		self.__historys = []
-		self.__medias:list[Media] = []
 		self.__filename = None
 		self.__file_name_backup = None
 		self.__isTransaction = False
 		self.UUID = str(uuid.uuid4())
 		self.__name = str()
 		self.__tempdir = os.path.join(tempfile.gettempdir(),__project__,str(uuid.uuid4()))
-		self.Parameter = Parameter()
+		self.Parameter = Parameter(self)
+		self.Media = Media(self)
 
 	def init(self):
 		self.__log = loggerHelper(str(self))
@@ -51,7 +51,7 @@ class Document(HanlderProperty,EventObserver):
 			self.addProperty('PropertyBool','AutoOpen')
 			self.AutoOpen = True
 		if not "FileName" in self.propertys:
-			self.addProperty('PropertyString','FileName')
+			self.addProperty('PropertyString','FileName',status=2)
 
 	@property
 	def TempDir(self):
@@ -78,9 +78,7 @@ class Document(HanlderProperty,EventObserver):
 		doc = self.__class__()
 		self._cloneProperty(doc)
 		self.Parameter._cloneProperty(doc.Parameter)
-		for media in self.__medias:
-			newmedia = doc.addMedia(media.FileName,media.Name)
-			media.setClone(newmedia)
+		doc.Media = self.Media.clone()
 		newobjects = []
 		for obj in self.__objects:
 			newobj = doc.addObject(obj.__class__.__name__,obj.Name)
@@ -89,12 +87,6 @@ class Document(HanlderProperty,EventObserver):
 		for obj,newobj in newobjects:
 			obj._cloneProperty(newobj)
 		return doc
-	
-	# @attr.setter
-	# def attr(self, value):
-	#     self.__attr = value
-	# def Objects(self):
-	#     return self.__objects
 	
 	def addObject(self,type,name) ->ObjectBase|None:
 		mainobject = MainObject()
@@ -111,30 +103,6 @@ class Document(HanlderProperty,EventObserver):
 			return object
 		return None
 	
-	def addMedia(self,path:str,name:str = None)->Media|None:
-		file = FileHelper(path)
-		if file.isNone():
-			file_name = file.toFileName(True)
-			file.copy(os.path.join(self.TempDir,file_name))
-			media = Media(self,file_name)
-			if name:
-				media.Name = name
-			self.__medias.append(media)
-			self.__set_change(True)
-			return media
-	
-	def getMediaByName(self,name:str):
-		for media in self.__medias:
-			if media.Name == name:
-				return media
-		return None
-	
-	def getMediaByUUID(self,uuid:str):
-		for media in self.__medias:
-			if media.UUID == uuid:
-				return media
-		return None
-	
 	def isChange(self):
 		return self.__isChange
 	
@@ -142,14 +110,44 @@ class Document(HanlderProperty,EventObserver):
 		self.__isChange = status
 		self.__isBackup = status
 
-	# @property
-	# def FileName(self):
-	# 	# return self.__filename
-	# 	return f"{self.__name}.zip"
-	
-	# @FileName.setter
-	# def FileName(self,val):
-	# 	self.__filename = val
+	def tree_view(self):
+		objs = []
+		commands = {}
+		commands[self.get_type()] = self.get_command()
+		for obj in self.Objects:
+			child = obj.tree_view()
+			if child:
+				objs.append(child)
+			obj_type = obj.get_type()
+			obj_cmd = obj.get_command()
+			if not obj_type in commands and len(obj_cmd) > 0:
+				commands[obj_type] = obj_cmd
+
+		return {
+			'uuid':self.UUID,
+			'type':self.__class__.__name__,
+			'name':self.Name, 
+			'theme':VARIATIONS.DOCUMENT,
+			'commands':{
+				**commands,
+				**self.Media.get_commands()
+			},
+			'children':[
+				{
+					'uuid':VARIATIONS.PARAMETER,
+					'name':VARIATIONS.PARAMETER,
+					'theme':VARIATIONS.PARAMETER
+				},
+				{
+					'uuid':VARIATIONS.OBJECT,
+					'name':VARIATIONS.OBJECT, 
+					'theme':VARIATIONS.OBJECT,
+					'children':objs
+				},
+				self.Media.tree_view()
+			],
+		}
+
 	def saveAs(self,filename = None):
 		self.FileName = filename
 		return self.save()
@@ -162,7 +160,10 @@ class Document(HanlderProperty,EventObserver):
 		docs = Core.config.get("AutoOpen",[])
 		if self.AutoOpen:
 			docs.append(self.FileName)
-			Core.config.set("AutoOpen",group_duplicates(docs))
+			Core.config.set("AutoOpen",group_duplicates(docs),True)
+		elif len(docs) and self.FileName in docs:
+			docs.remove(self.FileName)
+			Core.config.set("AutoOpen",group_duplicates(docs),True)
 		return data
 	
 	def AutoSave(self):
@@ -182,17 +183,22 @@ class Document(HanlderProperty,EventObserver):
 		# 	raise ValueError(f"save document error: FileName not found")
 		try:
 			data = self.dataSave()
+			f = open(os.path.join(self.TempDir, CONSTANTS.FILE_DATA), "wb")
+			f.write(json.dumps(data, indent=2).encode("utf-8"))
+			f.close()
 			with ZipFile(filename,'w') as zf:
-				with zf.open("data.json", "w") as c:
-					c.write(json.dumps(data, indent=2).encode("utf-8"))
-				for media in self.__medias:
-					zf.write(media.PathFile,media.FileName)
+				for root, dirs, files in os.walk(self.TempDir):
+					for file in files:
+						filePath = os.path.join(root, file)
+						inZipPath = filePath.replace(self.TempDir, "", 1).lstrip("\\/")
+						zf.write(filePath, inZipPath)
+
 				zf.close()
 			if not backup:
 				self.__set_change(False)
 				if self.__file_name_backup:
 					filehelper = FileHelper(self.__file_name_backup)
-					if filehelper.isNone():
+					if not filehelper.isNone():
 						filehelper.delete()
 				
 			return data
@@ -211,28 +217,20 @@ class Document(HanlderProperty,EventObserver):
 		for object in self.Objects:
 			content = object.save()
 			objects.append(content)
-
-		medias = []
-		for media in self.__medias:
-			mediajson = media.toJSON()
-			medias.append(mediajson)
+			
 		data = {
 			"name":self.Name,
 			"version":__version__,
 			"type":self.__class__.__name__,
-			'uuid':self.UUID,
-			'parameter':self.Parameter.save(),
-			'propertys':propertys,
-			'medias': medias,
-			'objects': objects
+			'uuid':self.UUID
 		}
+		data[VARIATIONS.PROPERTYS] = propertys
+		data[VARIATIONS.PARAMETERS] = self.Parameter.save()
+		data[VARIATIONS.MEDIAS] = self.Media.save()
+		data[VARIATIONS.OBJECTS] = objects
 		return data
 	
 	def toJSON(self):
-		# if not self.FileName:
-		#     if not self.saveAs():
-		#         return
-		
 		propertys = []
 		for property in self.propertys:
 			dataproperty = self.__dict__[property].toJSON()
@@ -242,20 +240,16 @@ class Document(HanlderProperty,EventObserver):
 			content = object.toJSON()
 			objects.append(content)
 
-		medias = []
-		for media in self.__medias:
-			mediajson = media.toJSON()
-			medias.append(mediajson)
 		data = {
 			"name":self.Name,
 			"version":__version__,
 			"type":self.__class__.__name__,
 			'uuid':self.UUID,
-			'parameter':self.Parameter.toJSON(),
-			'propertys':propertys,
-			'medias': medias,
-			'objects': objects
 		}
+		data[VARIATIONS.PROPERTYS] = propertys
+		data[VARIATIONS.PARAMETERS] = self.Parameter.toJSON()
+		data[VARIATIONS.MEDIAS] = self.Media.toJSON()
+		data[VARIATIONS.OBJECTS] = objects
 		return data
 
 	def __restoreObject(self,data):
@@ -277,24 +271,21 @@ class Document(HanlderProperty,EventObserver):
 			self.__tempdir = render['tempdir']
 			self.UUID = render['uuid']
 			self.Name = render['name']
-			self.Parameter.restoreProperty(render['parameter'])
-			self.restoreProperty(render["propertys"])
 
 			objs = []
-			for object in render['objects']:
+			for object in render[VARIATIONS.OBJECTS]:
 				data = self.__restoreObject(object)
 				objs.append(data)
-			for obj in render["medias"]:
-				media = Media.parse(self,obj)
-				# pathfile = media["pathfile"]
-				# uuid = media["uuid"]
-				# media = Media(self,pathfile,uuid)
-				self.__medias.append(media)
+
+			self.Media.restore(render.get(VARIATIONS.MEDIAS,[]))
 
 			for obj,data in objs:
 				obj.restore(data)
 				obj.init()
 				obj.onDocumentRestoredAfter(data)
+
+			self.Parameter.restoreProperty(render.get(VARIATIONS.PARAMETERS,[]))
+			self.restoreProperty(render.get(VARIATIONS.PROPERTYS,[]))
 			self.__set_change(False)
 		except Exception as ex:
 			# self.__log.error(f"restore document error: {ex}")
@@ -313,6 +304,7 @@ class Document(HanlderProperty,EventObserver):
 
 	def onBeforeChange(self,prop):
 		pass
+	
 	def onChanged(self, prop):
 		self.__set_change(True)
 		pass
@@ -321,6 +313,13 @@ class Document(HanlderProperty,EventObserver):
 		self.__set_change(True)
 		pass
 
+	def onChangedParameter(self, prop:str):
+		self.__set_change(True)
+		pass
+
+	def onCreateParameter(self,pro:PropertyBase):
+		pass
+	
 	def getObjectByName(self,name:str)->ObjectBase|None:
 		obj = self.__dict__.get(name)
 		if isinstance(obj,ObjectBase):
@@ -337,11 +336,15 @@ class Document(HanlderProperty,EventObserver):
 			if obj.onDelete():
 				delattr(self,obj.Name)
 				self.__objects.remove(obj)
+				obj.__del__()
+				del obj
 				self.__set_change(True)
+	
 	def deleteMedia(self,media:Media):
 		media.onDelete()
 		self.__medias.remove(media)
 		self.__set_change(True)
+	
 	def onDelete(self):
 		for index in range(len(self.__medias)):
 			media = self.__medias[0]
@@ -356,6 +359,17 @@ class Document(HanlderProperty,EventObserver):
 
 	def __repr__(self):
 		return str(f"{self.__class__.__name__}({self.Name})")
+	
+	def get_command(self):
+		return ["SaveDocument"]
+	
+	def getMode(self,mode:str):
+		if mode == VARIATIONS.MEDIA:
+			return self.Media
+		return self
+
+	def recompute(self):
+		pass
 class _MainDocument:
 	__documents = {}
 

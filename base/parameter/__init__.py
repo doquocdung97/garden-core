@@ -25,14 +25,22 @@ class PropertyParameter:
 			pro.onChange()
 	def addInList(self,obj:PropertyBase):
 		self.__inlist.append(obj)
+
 class Parameter(HanlderProperty):
-	def __init__(self) -> None:
+	def __init__(self,doc) -> None:
 		super().__init__()
+		self.__document = doc
 		self.__parameterpropertys = {}
 
+	@property
+	def Document(self):
+		return self.__document
+	
 	def addProperty(self, type: str, name: str, group: str = '', description: str = '', status: int = 1, attribute=None) -> PropertyBase | None:
 		pro = super().addProperty(type, name, group, description, status, attribute)
 		self.__parameterpropertys[pro.getName()] = PropertyParameter(pro)
+		self.__document.onCreateParameter(pro)
+		return pro
 	
 	def save(self):
 		return self.saveProperty()
@@ -55,6 +63,7 @@ class Parameter(HanlderProperty):
 	
 	def onChanged(self, prop):
 		super().onChanged(prop)
+		self.__document.onChangedParameter(prop)
 		param = self.__get(prop)
 		if param:
 			param.onChange()

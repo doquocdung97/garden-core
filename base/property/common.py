@@ -1,15 +1,17 @@
 from common import group_duplicates,createAttribute
 from  inspect import ismethod,isfunction
-
+from constants import VARIATIONS
 
 class PropertyBase:
-		def __init__(self, obj, name, group, description, status, type,attribute):
+		def __init__(self, obj, name, group, description, status, type,attribute = {}):
 				self.object = obj
 				self.__Name = name
 				self.__type = type
 				self.group = group
 				self.description = description
 				self.status = status
+				if not attribute:
+					attribute = {}
 				self.attribute = attribute
 				self.__Value = self.valueDefault()
 				self.__parameter = None
@@ -133,7 +135,10 @@ def PropertyListBase(target):
 		class PropertyListBase(target):
 				def valueDefault(self):
 						return []
-
+				
+				def getType(self):
+					return name
+				
 				def checkValue(self, vals:list):
 						if isinstance(vals,list):
 								for val in vals:
@@ -142,7 +147,12 @@ def PropertyListBase(target):
 								return True
 						return False
 				def convert(self, vals):
-						return [super(PropertyListBase,self).convert(val) for val in vals]
+						datas = []
+						for val in vals:
+							data = super(PropertyListBase,self).convert(val)
+							if data:
+								datas.append(data)
+						return datas
 		
 				def __repr__(self):
 						# val = super(PropertyListBase,self).toString()
@@ -153,13 +163,12 @@ def PropertyListBase(target):
 def PropertyEnumBase(target):
 		name = f'{target.__name__}Enum'
 		class PropertyEnumBase(target):
-				def __init__(self, obj, name, group, description, status, type, attribute):
-						super().__init__(obj, name, group, description, status, type, attribute)
-						self.__Values = []
 				def checkValue(self,val):
 						if ismethod(val) and self.object.__getattribute__(val.__func__.__name__) :
 							return True
-						elif isinstance(val,list) and val != self.getValues():
+						elif isinstance(val,list):
+								if val == self.getValues():
+									raise ValueError("Not change data")
 								for v in val:
 										if not super(PropertyEnumBase,self).checkValue(v) or (isinstance(v,str) and not v):
 												return False
@@ -168,29 +177,24 @@ def PropertyEnumBase(target):
 								return True
 						else:
 								return False
-						
-				def save(self):
-						data = super(PropertyEnumBase,self).save()
-						val = self.__Values
-						data["values"] = val
-						return data
 				
 				def toJSON(self):
 					data = super(PropertyEnumBase,self).save()
-					data["values"] = self.getValues()
 					return data
 				
 				def getValues(self):
-						if isinstance(self.__Values,str):
-							return self.object.__getattribute__(self.__Values)(self)
-						return self.__Values
+						if not self.attribute or not self.attribute.get("values"):
+							return []
+						if isinstance(self.attribute["values"],str):
+							return self.object.__getattribute__(self.attribute["values"])(self)
+						return self.attribute["values"]
 				
 				def setValue(self, val):
 						if ismethod(val) or isfunction(val):
-							self.__Values = val.__func__.__name__
+							self.attribute["values"] = val.__func__.__name__
 							super(PropertyEnumBase,self).setValue(None)
 						elif isinstance(val,list):
-								self.__Values = group_duplicates(val)
+								self.attribute["values"] = group_duplicates(val)
 								v = super(PropertyEnumBase,self).getValue()
 								if v and not v in val:
 										super(PropertyEnumBase,self).setValue(None)
@@ -202,14 +206,9 @@ def PropertyEnumBase(target):
 				
 				def restore(self, reader=None):
 						self.setValue(reader['value'])
-						self.__Values = reader['values']
 
 				def clone(self):
 					pro = super(PropertyEnumBase,self).clone()
-					if isinstance(pro.__Values,str):
-						pro.__Values = self.object.__getattribute__(self.__Values)
-					else:
-						pro.__Values = self.__Values
 					if self.Value:
 						pro.Value = self.Value
 					else:
@@ -234,14 +233,16 @@ def PropertyViewBase(target):
 			self.func_value = val
 		
 		def save(self):
-			return super(PropertyViewBase,self).save()
+			data = super().save()
+			del data['value']
+			return data
 		
 		def getValue(self, isSave=False):
 			# val = super(PropertyViewBase,self).getValue()
 			if hasattr(self,'func_value') and (ismethod(self.func_value) or isfunction(self.func_value)):
 				self.setValue(self.func_value())
-				return super(PropertyViewBase,self).getValue(True)
-			return self.valueDefault()
+				
+			return super(PropertyViewBase,self).getValue(isSave)
 		
 		def toJSON(self):
 			data = super().toJSON()
@@ -293,7 +294,16 @@ class HanlderProperty:
 		def __init__(self, **kwargs):
 			super().__init__(**kwargs)
 			self.__propertys = []
+			self.__out_list_view = []
+			self.__in_list_view = []
 	
+		@property
+		def OutListView(self):
+			return self.__out_list_view
+		@property
+		def InListView(self):
+			return self.__in_list_view
+		
 		def isInit(self):
 			return True
 		
@@ -306,12 +316,12 @@ class HanlderProperty:
 				property = self.__dict__.get(name)
 				return property
 		
-		def addProperty(self,type:str,name:str,group:str = '',description:str = '',status:int = 1,attribute = None)->PropertyBase|None:
+		def addProperty(self,type:str,name:str,group:str = '',description:str = '',status:int = 1,attribute = {})->PropertyBase|None:
 				mainProperty = MainProperty()
 				property = mainProperty.get(type)
 				if property:
 						name = createAttribute(self,name)
-						property = property(self,name,group,description,status,type,attribute)
+						property = property(self,name,group,description,int(status),type,attribute)
 						self.__dict__[name] = property
 						self.__propertys.append(name)
 						return property
@@ -323,7 +333,8 @@ class HanlderProperty:
 					self.addProperty(property['type'],property['name'],property['group'],property['description'],property['status'],property['attribute'])
 					if property['name'] in self.propertys:
 						self.__dict__[property['name']].restore(property)
-				except:
+						self.__update_in_and_out_list(property['type'],self.__dict__[property['name']].Value)
+				except Exception as ex:
 					pass
 
 		def saveProperty(self):
@@ -343,9 +354,72 @@ class HanlderProperty:
 		def checkNameInProperty(self,name:str)->bool:
 			return (name in self.__propertys)
 		
+		def get_command(self)->list[str]:
+			return []
+		
+		def get_type(self)->str:
+			return self.__class__.__name__
+		
+		def tree_view(self, check_in_list = True):
+			if len(self.InListView) > 0 and check_in_list:
+				return
+			
+			children = []
+			for obj in self.__out_list_view:
+				children.append(obj.tree_view(False))
+
+			data = {
+				'uuid':self.UUID,
+				'type':self.__class__.__name__,
+				'name':self.Name, 
+				'theme': VARIATIONS.OBJECT,
+				'children':children
+			}
+			return data
+		
+		def __update_in_and_out_list(self,type_name,value_new,value_old = None):
+			if type_name in ["PropertyObjects"]:
+				if value_old and len(value_old) > 0:
+					for obj in value_old:
+						self.__out_list_view.remove(obj)
+						obj.__in_list_view.remove(self)
+				if value_new and len(value_new) > 0:
+					self.__out_list_view = self.__out_list_view + value_new
+					for obj in value_new:
+						obj.__in_list_view.append(self)
+
+			if type_name in ["PropertyObject"]:
+				if value_old:
+					self.__out_list_view.remove(value_old)
+					value_old.__in_list_view.remove(self)
+				if value_new:
+					self.__out_list_view.append(value_new)
+					value_new.__in_list_view.append(self)
+					
 		def __setattr__(self, name, value):
 			if hasattr(self,name) and name in self.__propertys:
+				value_old = self.__dict__[name].Value
 				self.__dict__[name].Value = value
+				value_new = self.__dict__[name].Value
+				type_name = self.__dict__[name].getType()
+				self.__update_in_and_out_list(type_name,value_new,value_old)
+				# if type_name in ["PropertyObjects"]:
+				# 	if value_old and len(value_old) > 0:
+				# 		for obj in value_old:
+				# 			self.__out_list_view.remove(obj)
+				# 			obj.__in_list_view.remove(self)
+				# 	if value_new and len(value_new) > 0:
+				# 		self.__out_list_view = self.__out_list_view + value_new
+				# 		for obj in value_new:
+				# 			obj.__in_list_view.append(self)
+
+				# if type_name in ["PropertyObject"]:
+				# 	if value_old:
+				# 		self.__out_list_view.remove(value_old)
+				# 		value_old.__in_list_view.remove(self)
+				# 	if value_new:
+				# 		self.__out_list_view.append(value_new)
+				# 		value_new.__in_list_view.append(self)
 				return
 			return super(HanlderProperty,self).__setattr__(name, value)
 
@@ -374,3 +448,21 @@ class HanlderProperty:
 		
 		def onChanged(self, prop):
 			pass
+		
+		def remove_object_from_property(self,obj):
+			for pro in obj.propertys:
+				property = obj.__dict__.get(pro)
+				if property and property.getType() in ["PropertyObjects","PropertyObject"]:
+					value = obj.__getattribute__(pro)
+					if isinstance(value,list) and self in value:
+						value = value.copy()
+						value.remove(self)
+						obj.__setattr__(pro,value)
+					elif self == value:
+						obj.__setattr__(pro,None)
+						
+		def __del__(self):
+			for obj in [*self.OutListView]:
+				obj.remove_object_from_property(self)
+			for obj in [*self.InListView]:
+				self.remove_object_from_property(obj)

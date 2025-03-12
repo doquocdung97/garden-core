@@ -2,15 +2,17 @@ import cv2,base64,threading
 from base.object.common import MainObject, ObjectBase
 
 class ObjectCameraBase(ObjectBase):
-	
+	def __init__(self, document):
+		super().__init__(document)
+		self.__image_base64 = str()
+		self.__video = None
+		self.__grabbed = False
+		self.__handle_camera = False
+
 	def init(self):
 		self.Image = self.__get_frame
 		self.IsOpen = self.__is_open
-		self.__video = None
 		self.__select_camera(self.Option)
-		self.__grabbed = False
-		self.__handle_camera = False
-		self.__image_base64 = str()
 		if self.AutoOpen:
 			self.set_open(True)
 		return super().init()
@@ -18,6 +20,7 @@ class ObjectCameraBase(ObjectBase):
 	def setProperties(self):
 		if not self.checkNameInProperty("Option"):
 			self.addProperty("PropertyInteger","Option")
+			self.Option = 1
 
 		if not self.checkNameInProperty("AutoOpen"):
 			self.addProperty("PropertyBool","AutoOpen")

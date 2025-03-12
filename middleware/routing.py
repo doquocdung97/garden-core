@@ -59,7 +59,7 @@ class CustomGraphQLSubscriptionConsumer(GraphQLSubscriptionConsumer):
 				self.scope["subscription_uuid"] = self.uuid
 		elif message_type == GQL_STOP:
 				try:
-					func = self.scope[f"subscription_pubsub_{self.uuid}"]
+					func = self.scope.get(f"subscription_pubsub_{self.uuid}")
 					if func:
 						func.close()
 				except Exception as ex:

@@ -1,11 +1,12 @@
 
 from typing import Any
 from base.object import ObjectBase
-from base.common import Vector,Color
+from base.common import Vector,Color,File,FileObject
 from .common import *
 import os
 from common import validate_time
-from base.media import Media
+from base.media import MediaBase
+from datetime import time
 main = MainProperty()
 
 class PropertyString(PropertyBase):
@@ -21,6 +22,8 @@ class PropertyInteger(PropertyBase):
 				return 0
 		def checkValue(self,val):
 				return isinstance(val,int)
+		def convert(self, val):
+			return int(val)
 main.add(PropertyInteger,True,True,True)
 
 class PropertyBool(PropertyBase):
@@ -40,37 +43,43 @@ class PropertyFloat(PropertyBase):
 			if isinstance(val,int):
 				val = float(val)
 			return super().setValue(val)
+		def convert(self, val):
+			return float(val)
 main.add(PropertyFloat,True,True)
 
 class PropertyMedia(PropertyBase):
+		def checkValue(self,val:MediaBase)->bool:
+				return isinstance(val,MediaBase) or val is None
+		
 		def getValue(self, isSave=False):
 				value = super(PropertyMedia,self).getValue(isSave)
+				
 				if isSave and value:
 						if isinstance(value,list):
 										return [v.UUID for v in value]
 						return value.UUID
 				return value
-				
-		def checkValue(self,val):
-				return isinstance(val,Media)
 		
-		def toJSON(self):
-			data = super(PropertyMedia,self).toJSON()
-			val = super(PropertyMedia,self).getValue()
-			if val:
-				if isinstance(val,list):
-					data["value"] = [v.toJSON() for v in val]
-				else:
-					data["value"] = val.toJSON()
-			
-			return data
-			
-		def convert(self, val):
-				doc = self.object.Document
-				return doc.getMediaByUUID(val)
+		def setValue(self, val):
+				super(PropertyMedia,self).setValue(val)
 
-		def toString(self):
-				return self.__Value
+		def toJSON(self):
+			data = self.save()
+			val = self.getValue()
+			
+			if isinstance(val,list):
+				data['value'] = [{"name":v.Name,"uuid":v.UUID}  for v in val]
+			elif val:
+				data['value'] = {
+					"name":val.Name,
+					"uuid":val.UUID
+				} 
+			return data
+		
+		def convert(self,val):
+				doc = self.object.Document
+				media = doc.Media
+				return media.getObjectByUUID(val)
 		
 		def clone(self):
 			pro = super().clone()
@@ -84,7 +93,7 @@ main.add(PropertyMedia,True)
 
 class PropertyObject(PropertyBase):
 		def checkValue(self,val:ObjectBase)->bool:
-				return isinstance(val,ObjectBase)
+				return isinstance(val,ObjectBase) or val is None
 		
 		def getValue(self, isSave=False):
 				value = super(PropertyObject,self).getValue(isSave)
@@ -99,7 +108,17 @@ class PropertyObject(PropertyBase):
 				super(PropertyObject,self).setValue(val)
 
 		def toJSON(self):
-			return self.save()
+			data = self.save()
+			val = self.getValue()
+			
+			if isinstance(val,list):
+				data['value'] = [{"name":v.Name,"uuid":v.UUID}  for v in val]
+			elif val:
+				data['value'] = {
+					"name":val.Name,
+					"uuid":val.UUID
+				} 
+			return data
 		
 		def convert(self,val):
 				doc = self.object.Document
@@ -114,7 +133,6 @@ class PropertyObject(PropertyBase):
 			return pro
 
 main.add(PropertyObject,True)
-from datetime import time
 
 class PropertyTime(PropertyBase):
 		def valueDefault(self):
@@ -219,3 +237,78 @@ class PropertyDocument(PropertyBase):
 		return data
 	
 main.add(PropertyDocument)
+
+class PropertyFunction(PropertyBase):
+	def __init__(self, obj, name, group, description, status, type, attribute):
+		super().__init__(obj, name, group, description, status, type, attribute)
+		self.__func = None
+	def checkValue(self, val):
+		return ismethod(val) or isfunction(val)
+	
+	def setValue(self, val):
+		self.__func = val
+
+	def toJSON(self):
+		data = super().toJSON()
+		del data["value"]
+		return data
+
+	def save(self):
+		data = super().save()
+		del data['value']
+		return data
+
+	def getValue(self, isSave=False):
+		return self.__func
+main.add(PropertyFunction)
+
+class PropertyFile(PropertyBase):
+	def valueDefault(self):
+		return None
+	
+	def checkValue(self,val:File):
+		return isinstance(val,File) or isinstance(val,FileObject) or val == None
+	
+	def convert(self, val):
+		obj = self.object
+		if not isinstance(val,str):
+			path = os.path.join(obj.UUID,val.name)
+			fordel_object = os.path.join(obj.Document.TempDir,obj.UUID)
+			if not os.path.exists(fordel_object):
+				os.makedirs(fordel_object)
+			f = open(os.path.join(obj.Document.TempDir,path), "wb")
+			f.write(val.read())
+			f.close()
+			val = path
+		return FileObject.parse(obj,val)
+
+	def getValue(self, isSave=False):
+		if isSave:
+			val:FileObject = super().getValue()
+			if val:
+				if isinstance(val,list):
+					return [v.save() for v in val]
+				return val.save()
+		return super().getValue(isSave)
+
+	def toJSON(self):
+		jsondata = super().toJSON()
+		val:FileObject = super().getValue()
+		data = None
+		if val:
+				if isinstance(val,list):
+					data = [v.toJSON() for v in val]
+				data = val.toJSON()
+		jsondata["value"] = data
+		return jsondata
+	
+	def setValue(self, val:File):
+		old_val = self.getValue()
+		if isinstance(old_val,FileObject):
+			old_val.delete()
+		if val and isinstance(val,File):
+			val = FileObject(self.object,val)
+		return super().setValue(val)
+
+		
+main.add(PropertyFile)
