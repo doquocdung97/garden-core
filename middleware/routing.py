@@ -1,7 +1,7 @@
 from django.urls import path
 from channels.routing import ProtocolTypeRouter, URLRouter
-from graphene_subscriptions.consumers import GraphqlSubscriptionConsumer
-from channels.generic.websocket import AsyncWebsocketConsumer
+# from graphene_subscriptions.consumers import GraphqlSubscriptionConsumer
+# from channels.generic.websocket import AsyncWebsocketConsumer
 
 # class CustomSubscriptionConsumer(GraphqlSubscriptionConsumer):
 # 		def __init__(self, scope):

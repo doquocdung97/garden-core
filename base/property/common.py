@@ -372,7 +372,8 @@ class HanlderProperty:
 			
 			children = []
 			for obj in self.__out_list_view:
-				children.append(obj.tree_view(False))
+				if obj:
+					children.append(obj.tree_view(False))
 
 			data = {
 				'uuid':self.UUID,

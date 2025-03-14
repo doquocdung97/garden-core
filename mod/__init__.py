@@ -10,11 +10,7 @@ modules = []
 #         models.append(module)
 from . import jsondata
 from . import schedule
-from . import sensor
-from . import tree
 from . import serial
-from . import car
-from . import camera
-modules.extend([jsondata,schedule,sensor,tree,serial,car,camera])
+modules.extend([jsondata,schedule,serial])
 # for module_name in module_names:
 #     module = importlib.import_module(f"{folder_path}.{module_name}")
