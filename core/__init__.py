@@ -285,6 +285,24 @@ class _deleteObject(Command):
 	
 Core.cmd.add("DeleteObject",_deleteObject())
 
+class _executeObject(Command):
+	def GetResources(self):
+		return {
+			"Title":"Execute Object",
+			"Tooltip":"Execute Object",
+		}
+
+	def IsActive(self) -> bool:
+		return True
+	
+	def Parameter(self):
+		return [ObjectBase]
+	
+	def Activated(self,obj:ObjectBase):
+		return obj.execute()
+	
+Core.cmd.add("ExecuteObject",_executeObject())
+
 class _createMedia(Command):
 	def GetResources(self):
 		return {

@@ -170,7 +170,7 @@ class Document(HanlderProperty,EventObserver):
 		if self.__isChange and self.__isBackup:
 			path = os.path.join(tempfile.gettempdir(),__project__,VARIATIONS.FOLDER_BACKUP)
 			if not os.path.exists(path):
-				os.mkdir(path)
+				os.makedirs(path, exist_ok=True)
 			self.__file_name_backup = os.path.join(path,f"{self.Name}_{self.UUID}.zip")
 			self.__handle_save(self.__file_name_backup,True)
 			self.__isBackup = False

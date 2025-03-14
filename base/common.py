@@ -33,7 +33,8 @@ class Vector:
 						raise ValueError("value")
 		
 		def __repr__(self) -> str:
-				return f"Vector({self.__x},{self.__y},{self.__z})"
+				# return f"Vector({self.__x},{self.__y},{self.__z})"
+				return "Vector({:.1f},{:.1f},{:.1f})".format(self.__x,self.__y,self.__z)
 
 class Color:
 	def __init__(self,r:int = 0,g:int = 0,b:int = 0,a:float = 0) -> None:

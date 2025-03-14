@@ -182,16 +182,22 @@ def PropertyEnumBase(target):
 					data = super(PropertyEnumBase,self).save()
 					return data
 				
+				def getValue(self, isSave=False):
+					if self.attribute.get("values_function"):
+						self.attribute["values"] = self.object.__getattribute__(self.attribute["values_function"])(self)
+					return super(PropertyEnumBase,self).getValue(isSave)
+
 				def getValues(self):
 						if not self.attribute or not self.attribute.get("values"):
 							return []
-						if isinstance(self.attribute["values"],str):
-							return self.object.__getattribute__(self.attribute["values"])(self)
+						if self.attribute.get("values_function"):
+							return self.object.__getattribute__(self.attribute["values_function"])(self)
 						return self.attribute["values"]
 				
 				def setValue(self, val):
 						if ismethod(val) or isfunction(val):
-							self.attribute["values"] = val.__func__.__name__
+							self.attribute["values_function"] = val.__func__.__name__
+							self.attribute["values"] = val(self)
 							super(PropertyEnumBase,self).setValue(None)
 						elif isinstance(val,list):
 								self.attribute["values"] = group_duplicates(val)
