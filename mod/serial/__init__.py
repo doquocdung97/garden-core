@@ -16,26 +16,6 @@ class _ListSerial(Command):
 	def Activated(self,*args):
 		return list_ports.comports()
 
-class _ConnectSerial(Command):
-	def GetResources(self):
-		return {
-			"Title":"Serials",
-		}
-
-	def IsActive(self) -> bool:
-		return True
-	
-	# def Parameter(self):
-	#     return [int,int,str]
-	
-	def Activated(self,*args):
-		ser = serial.Serial("COM8", 9600)
-		while True:
-			cc=str(ser.readline())
-			if cc:
-				print(cc)
-
-Core.cmd.add("ConnectSerial",_ConnectSerial())
 Core.cmd.add("ListSerial",_ListSerial())
 
 
