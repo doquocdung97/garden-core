@@ -10,6 +10,9 @@ class ObjectSeed(ObjectBase):
 		if not self.checkNameInProperty("Position"):
 			self.addProperty("PropertyVector", "Position")
 			self.Position = Vector()
-
+		if not self.checkNameInProperty("Indexs"):
+			self.addProperty("PropertyIntegers", "Indexs")
+			self.Indexs = []
+			
 main = MainObject()
 main.add(ObjectSeed)

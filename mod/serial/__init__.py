@@ -23,7 +23,7 @@ from core import Core,Command,Schedule
 from core.schedule import EveryDay, EveryTime
 from common import loggerHelper
 import datetime, threading,schedule
-from datetime import time
+import time
 import io
 from base.object.common import MainObject, ObjectBase
 class ObjectSerial(ObjectBase):
@@ -76,12 +76,13 @@ class ObjectSerial(ObjectBase):
 	def connect(self):
 		self.disConnect()
 		try:
-			self.ser = serial.Serial(port=self.Port,\
-														baudrate=self.BaudRate,\
-														parity=serial.PARITY_NONE,\
-														stopbits=serial.STOPBITS_ONE,\
-														bytesize=serial.EIGHTBITS,\
-														timeout=self.Timeout)
+			if (self.Port and self.BaudRate and self.Timeout > 0) and (not self.IsOpen):
+				self.ser = serial.Serial(port=self.Port,\
+															baudrate=self.BaudRate,\
+															parity=serial.PARITY_NONE,\
+															stopbits=serial.STOPBITS_ONE,\
+															bytesize=serial.EIGHTBITS,\
+															timeout=self.Timeout)
 		except Exception as ex:
 			self.logger.error(f"connect port {self.Port} error {ex}")
 		return self.ser
