@@ -50,21 +50,18 @@ class ObjectSerial(ObjectBase):
 		if not "Port" in self.propertys:
 			pro = self.addProperty("PropertyStringEnum","Port")
 			self.Port = self.listport
-			vals = pro.getValues()
-			if len(vals) > 0:
-				self.Port = vals[0]
 
 		if not "IsOpen" in self.propertys:
 			self.addProperty("PropertyBoolView","IsOpen")
 		
 		if not "Timeout" in self.propertys:
-			self.addProperty("PropertyInteger","Timeout")
-			self.Timeout = 0
+			self.addProperty("PropertyFloat","Timeout")
+			self.Timeout = 0.5
 
 		if not "BaudRate" in self.propertys:
 			self.addProperty("PropertyIntegerEnum","BaudRate")
 			self.BaudRate = [300,600,1200,2400,4800,9600,14400,19200,28800,38400,57600,115200,230400,460800,921600,1000000,2000000]
-			self.BaudRate = 9600
+			self.BaudRate = 115200
 
 		return super().setProperties()
 
