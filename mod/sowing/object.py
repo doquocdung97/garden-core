@@ -1,10 +1,9 @@
 from base.object.common import MainObject, ObjectBase
-from mod.serial import ObjectSerial
 from base.common import Vector
 from rich.console import Console
 from rich.table import Table
-import time
-Test = True
+import time, schedule
+from .grbl import ObjectGrbl
 class ObjectSowing(ObjectBase):
 
 	def setProperties(self):
@@ -85,6 +84,8 @@ class ObjectSowing(ObjectBase):
 
 	def sowing(self):
 		print("ObjectSowing - sowing",self)
+		self.__handle_points()
+		points = self.Points
 		try:
 			grbl: ObjectGrbl = self.Grbl
 			if not grbl.IsOpen:
@@ -121,42 +122,30 @@ class ObjectSowing(ObjectBase):
 				grbl.GoHome(True)
 		except Exception as e:
 				raise ValueError(e)
-
-class ObjectGrbl(ObjectSerial):
-
-	def PlusPosition(self,status = True):
-		if status:
-			self.send("G91\n")
-		else:
-			self.send("G90\n")
-
-	def SetPosition(self,x,y,z,speed = None):
-		if speed:
-			self.send("G0 X{} Y{} Z{} F{}\n".format(x,y,z,speed))
-			return
-		self.send("G0 X{} Y{} Z{}\n".format(x,y,z))
-
-	def SetSpeed(self,speed):
-		self.send("F{}\n".format(speed))
-
-	def GoHome(self):
-		self.send("$H\n")
-		self.send("G92 X0 Y0 Z0\n")
-
-class ObjectSeed(ObjectBase):
-	def setProperties(self):
-		super().setProperties()
-		if not self.checkNameInProperty("SeedType"):
-			self.addProperty("PropertyString", "SeedType")
-			self.SeedType = "DefaultSeed"
-
-		if not self.checkNameInProperty("Position"):
-			self.addProperty("PropertyVector", "Position")
-			self.Position = Vector()
+		
+	def __handle_table(self):
+		console = Console()
+		table = Table(title="Position")
+		table.add_column(f"STT")
+		points = self.Points
+		for col in range(0, self.Column):
+			table.add_column(f"Col{col + 1}")
+		index = 0
+		for i in range(0,self.Row):
+			rows_repr = []
+			col_range = range(0, self.Column) if (i+1) % 2 != 0 else range(self.Column -1, -1, -1)
+			index = 0
+			for j in col_range:
+				num = i*self.Column +j
+				
+				ver = points[num]
+				rows_repr.append(f"index({num})\n{ver.__repr__()}")
+				index += 1
+			table.add_row(str(i+1), *rows_repr, style='bright_green')
+		
+		console.print(table)
 
 	def get_command(self):
 		return ['InsertSeed',"GoHome","StopJob","UpdatePoint"]
 main = MainObject()
 main.add(ObjectSowing)
-main.add(ObjectGrbl)
-main.add(ObjectSeed)
