@@ -90,7 +90,6 @@ class _MainSchedule:
 			del self.__schedules[name]
 	def loop(self):
 		schedule.run_pending()
-
 # cmd = __MainCommand()
 from common.event import EventObserver
 class __Core(EventObserver):
@@ -191,8 +190,8 @@ class __Core(EventObserver):
 			
 	def loop(self):
 		while True:
-			schedule.run_pending()
-			time.sleep(1)
+			self.schedule.loop()
+			time.sleep(0.01)
 		#pass
 		# try:
 		#     if self.__documents:

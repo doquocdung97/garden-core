@@ -13,7 +13,14 @@ class ObjectBase(HanlderProperty):
 		self.UUID = str(uuid.uuid4())
 		self.__init = False
 		self.Name = str()
+		self.__log = loggerHelper(str(self))
 
+	@property
+	def Duplicate(self):
+		return self.__handle_duplicate()
+	
+	def __handle_duplicate(self):
+		pass
 	@property
 	def Clone(self):
 		return self.__clone
@@ -63,8 +70,11 @@ class ObjectBase(HanlderProperty):
 		}
 		
 	def restore(self,reader):
-		self.restoreProperty(reader["propertys"])
-		self.setProperties()
+		try:
+			self.restoreProperty(reader["propertys"])
+			self.setProperties()
+		except Exception as ex:
+			self.__log.error(f"Restore:{ex}")
 
 	def IsChange(self):
 		return self.__isChange
@@ -108,6 +118,7 @@ class ObjectBase(HanlderProperty):
 
 	def recompute(self):
 		pass
+
 class MainObject():
 	__properties = {}
 	def get(self,name:str =None)->type|None:
