@@ -150,7 +150,7 @@ def PropertyListBase(target):
 						datas = []
 						for val in vals:
 							data = super(PropertyListBase,self).convert(val)
-							if data:
+							if not data is None:
 								datas.append(data)
 						return datas
 		
