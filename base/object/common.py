@@ -119,6 +119,9 @@ class ObjectBase(HanlderProperty):
 	def recompute(self):
 		pass
 
+	def get_command(self):
+		return ["ExecuteObject","DuplicateObject","DeleteObject"]
+	
 class MainObject():
 	__properties = {}
 	def get(self,name:str =None)->type|None:

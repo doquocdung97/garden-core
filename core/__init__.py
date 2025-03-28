@@ -368,3 +368,20 @@ class _createFile(Command):
 	
 Core.cmd.add("CreateFile",_createFile())
 Core.cmd.add("CreateFolder",_createFolder())
+class _duplicateObject(Command):
+	def GetResources(self):
+		return {
+			"Title":"Duplicate Object",
+			"Tooltip":"Duplicate Object",
+		}
+
+	def IsActive(self) -> bool:
+		return True
+	
+	def Parameter(self):
+		return [ObjectBase]
+	
+	def Activated(self,obj:ObjectBase):
+		return obj.Document.DuplicateObject(obj.Name)
+	
+Core.cmd.add("DuplicateObject",_duplicateObject())
