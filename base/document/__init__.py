@@ -88,12 +88,15 @@ class Document(HanlderProperty,EventObserver):
 			obj._cloneProperty(newobj)
 		return doc
 	
-	def addObject(self,type,name) ->ObjectBase|None:
+	def addObject(self,type,name,data = None) ->ObjectBase|None:
 		mainobject = MainObject()
 		object = mainobject.get(type)
 		if object:
 			object:ObjectBase = object(self)
-			object.setProperties()
+			if data:
+				object.restore(data)
+			else:
+				object.setProperties()
 			name = createAttribute(self,name)
 			object.Name = name
 			self.__dict__[name] = object
@@ -290,6 +293,14 @@ class Document(HanlderProperty,EventObserver):
 		except Exception as ex:
 			# self.__log.error(f"restore document error: {ex}")
 			print(f"restore document error: {ex}")
+
+	def DuplicateObject(self,name):
+		obj = self.getObjectByName(name)
+		if obj:
+			obj_json = obj.save()
+			new_obj = self.addObject(obj_json.get('type'),f"{name}",obj_json)
+			return new_obj
+		return None
 
 	def __setattr__(self, name, value):
 		if hasattr(self,name) and self.__getattribute__(name) in self.__objects:
