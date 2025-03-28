@@ -97,8 +97,7 @@ class ObjectSowing(ObjectBase):
 				self.__handle_points()
 				maxmove = self.SpeedMove
 				speed = self.SpeedSowing
-				grbl.SetD9(True)
-				points = self.Points
+				grbl.SetD9(False)
 				for i, point in enumerate(points):
 					
 					seeds = list(filter(lambda a: list(filter(lambda x: x == i, a.Indexs)),self.SeedGroup.Children))
@@ -114,9 +113,9 @@ class ObjectSowing(ObjectBase):
 					grbl.SetPosition(point.X,point.Y,0,maxmove,isIdle= False)
 					grbl.SetPosition(point.X,point.Y,self.Hight,speed,isIdle=True)
 
-					grbl.SetD9(False)
-					grbl.SetPosition(point.X,point.Y,0,maxmove,isIdle=False)
 					grbl.SetD9(True)
+					grbl.SetPosition(point.X,point.Y,0,maxmove,isIdle=False)
+					grbl.SetD9(False)
 
 				# grbl.SetD10(0)
 				grbl.GoHome(True)
@@ -144,8 +143,11 @@ class ObjectSowing(ObjectBase):
 			table.add_row(str(i+1), *rows_repr, style='bright_green')
 		
 		console.print(table)
-
+	
 	def get_command(self):
-		return ['InsertSeed',"GoHome","StopJob","UpdatePoint"]
+		cmds = super().get_command()
+		cmds.extend(['InsertSeed',"GoHome","StopJob","UpdatePoint"])
+		return cmds
+	
 main = MainObject()
 main.add(ObjectSowing)

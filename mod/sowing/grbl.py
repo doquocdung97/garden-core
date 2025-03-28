@@ -222,7 +222,9 @@ class ObjectGrbl(ObjectSerial):
 
 
 	def get_command(self):
-		return ["ReConnect", "GetSetingByGrbl", "SetSetingForGrbl"]
+		cmds = super().get_command()
+		cmds.extend(["ReConnect", "GetSetingByGrbl", "SetSetingForGrbl"])
+		return cmds
 	
 	def SetD8(self,status=True):
 		self.append_job("M7" if status else "M9",isIdle=False)
