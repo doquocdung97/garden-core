@@ -64,7 +64,7 @@ def test(request):
 	}
 	return JsonResponse(data)
 
-test(None)
+# test(None)
 
 def update(request):
 	time = request.GET.get('time', None)

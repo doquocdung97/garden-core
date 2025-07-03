@@ -53,7 +53,7 @@ class ObjectGrbl(ObjectSerial):
 			str_z = "Z{}".format(z)
 		# 	return self.send("G01 X{} Y{} Z{} F{}\n".format(x,y,z,speed),False,True)
 		# return self.send("G0 X{} Y{} Z{}\n".format(x,y,z),False,True)
-		self.append_job("{} {} {} {} {}\n".format(code,str_x,str_y,str_z,str_speed),isIdle=isIdle)
+		self.append_job("{} {} {} {} {}".format(code,str_x,str_y,str_z,str_speed),isIdle=isIdle)
 
 	def SetSpeed(self,speed):
 		return self.send("F{}\n".format(speed))
@@ -123,12 +123,15 @@ class ObjectGrbl(ObjectSerial):
 		elif 0 <= index < len(self.__list_job):
 			del self.__list_job[index]
 
+	def get_job(self):
+		return self.__list_job
+	
 	def __setJob(self):
 		try:
 			if self.__job:
 				schedule.cancel_job(self.__job)
-			if self.IsOpen and hasattr(self,"Job") and self.Job:
-				self.__job = schedule.every(self.Timeout).seconds.do(self.__schedule_task)
+			# if self.IsOpen and hasattr(self,"Job") and self.Job:
+			# 	self.__job = schedule.every(self.Timeout).seconds.do(self.__schedule_task)
 		except Exception as ex:
 			print(ex)
 
@@ -231,6 +234,10 @@ class ObjectGrbl(ObjectSerial):
 
 	def SetD9(self,status=True):
 		self.append_job("M8" if status else "M9",isIdle=False)
+
+	def SetPin(self,pin , status=True):
+		self.append_job(f"M62 P{pin}" if status else f"M63 P{pin}",isIdle=False)
+
 
 	def SetD10(self,value):
 		self.append_job("M3 S{}".format(value) if value > 0 else "M5",isIdle=False)
