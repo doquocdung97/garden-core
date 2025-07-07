@@ -126,10 +126,14 @@ class FileObject:
 			return self.__path_file.toFileType()
 		
 	def toJSON(self)->dict:
+		path_file = self.path_file()
+		path_file = path_file.replace("\\","/")
+		path = f"/media/{self.__obj.Document.Name}/{path_file}"
 		return {
 			"name":self.get_name(),
 			"type":self.get_type(),
-			"url":self.path_file()
+			"url":path,
+			"path": path_file
 		}
 	
 	def save(self)->dict:
@@ -142,4 +146,7 @@ class FileObject:
 			return FileObject(obj,_file)
 		
 	def delete(self):
-		return self.__path_file.delete()
+		try:
+			return self.__path_file.delete()
+		except:
+			pass

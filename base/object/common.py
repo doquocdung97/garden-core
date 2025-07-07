@@ -1,6 +1,8 @@
 from ..property import HanlderProperty
 import uuid
 from common import loggerHelper,createAttribute
+from base.model import ObjectModel, OBJECTENUM
+
 class ObjectBase(HanlderProperty):
 
 	def __init__(self,document):
@@ -14,6 +16,7 @@ class ObjectBase(HanlderProperty):
 		self.__init = False
 		self.Name = str()
 		self.__log = loggerHelper(str(self))
+		self.__model = None
 
 	@property
 	def Duplicate(self):
@@ -76,6 +79,13 @@ class ObjectBase(HanlderProperty):
 		except Exception as ex:
 			self.__log.error(f"Restore:{ex}")
 
+	def restore_with_database(self,obj:ObjectModel):
+		try:
+			self.restore_property_with_database(obj.property)
+			self.setProperties()
+		except Exception as ex:
+			self.__log.error(f"Restore:{ex}")
+
 	def IsChange(self):
 		return self.__isChange
 	
@@ -121,7 +131,23 @@ class ObjectBase(HanlderProperty):
 
 	def get_command(self):
 		return ["ExecuteObject","DuplicateObject","DeleteObject"]
-	
+
+	@property
+	def Model(self):
+		if self.__model:
+			return self.__model
+		else:
+			model = ObjectModel()
+			model.id = self.UUID
+			model.name = self.Name
+			model.parent = self.Document.Model
+			model.kind = self.__class__.__name__
+			return model
+		
+	@Model.setter
+	def Model(self,obj:ObjectModel):
+		if isinstance(obj,ObjectModel):
+			self.__model = obj
 class MainObject():
 	__properties = {}
 	def get(self,name:str =None)->type|None:

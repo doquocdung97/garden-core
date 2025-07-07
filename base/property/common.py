@@ -1,6 +1,9 @@
 from common import group_duplicates,createAttribute
 from  inspect import ismethod,isfunction
 from constants import VARIATIONS
+from base.model import PropertyModel
+from base.repository.propertyrepository import _PropertyRepository
+from typing import List
 
 class PropertyBase:
 		def __init__(self, obj, name, group, description, status, type,attribute = {}):
@@ -15,7 +18,8 @@ class PropertyBase:
 				self.attribute = attribute
 				self.__Value = self.valueDefault()
 				self.__parameter = None
-
+				self.__model = None
+				self.__repository = _PropertyRepository
 		def valueDefault(self):
 				return None
 		
@@ -114,6 +118,10 @@ class PropertyBase:
 
 		def setValue(self, val):
 				self.__Value = val
+				model = self.__model
+				if model:
+					model.value = self.getValue(True)
+					self.__repository.update(model)
 
 		def toString(self):
 				return self.__Value
@@ -129,7 +137,28 @@ class PropertyBase:
 			except:
 				pass
 			return pro
-
+		
+		@property
+		def Model(self):
+			if self.__model:
+				return self.__model
+			else:
+				model = PropertyModel()
+				model.name =  self.__Name
+				model.type =	self.__type
+				model.value =	self.getValue(True)
+				model.object = self.object.Model
+				model.group =	self.group
+				model.description =	self.description
+				model.status =	self.status
+				model.attribute =	self.attribute
+				return model
+			
+		@Model.setter
+		def Model(self,obj:PropertyModel):
+			if isinstance(obj,PropertyModel):
+				self.__model = obj
+				
 def PropertyListBase(target):
 		name = f'{target.__name__}s'
 		class PropertyListBase(target):
@@ -246,9 +275,10 @@ def PropertyViewBase(target):
 		def getValue(self, isSave=False):
 			# val = super(PropertyViewBase,self).getValue()
 			if hasattr(self,'func_value') and (ismethod(self.func_value) or isfunction(self.func_value)):
-				self.setValue(self.func_value())
+				# self.setValue(self.func_value()) #fix max call back
+				return self.func_value()
 				
-			return super(PropertyViewBase,self).getValue(isSave)
+			# return super(PropertyViewBase,self).getValue(isSave)
 		
 		def toJSON(self):
 			data = super().toJSON()
@@ -302,7 +332,7 @@ class HanlderProperty:
 			self.__propertys = []
 			self.__out_list_view = []
 			self.__in_list_view = []
-	
+			self.__repository = _PropertyRepository
 		@property
 		def OutListView(self):
 			return self.__out_list_view
@@ -322,12 +352,14 @@ class HanlderProperty:
 				property = self.__dict__.get(name)
 				return property
 		
-		def addProperty(self,type:str,name:str,group:str = '',description:str = '',status:int = 1,attribute = {})->PropertyBase|None:
+		def addProperty(self,type:str,name:str,group:str = '',description:str = '',status:int = 1,attribute = {},model = False)->PropertyBase|None:
 				mainProperty = MainProperty()
 				property = mainProperty.get(type)
 				if property:
 						name = createAttribute(self,name)
 						property = property(self,name,group,description,int(status),type,attribute)
+						if not model:
+							property.Model = self.__repository.create(property.Model)
 						self.__dict__[name] = property
 						self.__propertys.append(name)
 						return property
@@ -340,6 +372,19 @@ class HanlderProperty:
 					if property['name'] in self.propertys:
 						self.__dict__[property['name']].restore(property)
 						self.__update_in_and_out_list(property['type'],self.__dict__[property['name']].Value)
+				except Exception as ex:
+					pass
+
+		def restore_property_with_database(self,reader:List[PropertyModel]):
+			for pro in reader:
+				property = pro.toJson()
+				try:
+					self.addProperty(property['type'],property['name'],property['group'],property['description'],property['status'],property['attribute'],True)
+					if property['name'] in self.propertys:
+						new_pro = self.__dict__[property['name']]
+						new_pro.restore(property)
+						self.__update_in_and_out_list(property['type'],new_pro.Value)
+						new_pro.Model = pro
 				except Exception as ex:
 					pass
 

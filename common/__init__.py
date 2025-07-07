@@ -1,5 +1,13 @@
 from .loggerhelper import *
 import re
+import builtins
+import tempfile
+from core._version import __project__
+def custom_print(*args, **kwargs):
+    builtins._original_print("[CUSTOM]", *args, **kwargs)
+
+builtins._original_print = builtins.print  # store original
+builtins.print = custom_print
 
 def group_duplicates(input_list:list):
 	grouped_data = {}
@@ -30,7 +38,6 @@ def indexToFormat(index:int,num:int)->str:
 			zero += str(0)
 	return f"{zero}{index}"
 
-
 def createAttribute(obj,name):
 	nameold = re.sub(r'[^a-zA-Z0-9]', '_', name)
 	index = 0
@@ -45,3 +52,12 @@ def createAttribute(obj,name):
 		index+=1
 def formatName(name:str)->str:
 	return re.sub(r'[^a-zA-Z0-9]', '_', name)
+
+def get_property_function(obj):
+	import inspect
+	inspect.getmembers(obj, predicate=inspect.isfunction)
+	return
+
+def get_temp_dir():
+	tempdir = os.path.join(tempfile.gettempdir(),__project__)
+	return tempdir
