@@ -14,8 +14,9 @@ import enum
 
 Base = get_declarative_base()
 class OBJECTENUM:
-    DOCUMENT = "DOCUMENT"
-    OBJECT = "OBJECT"
+    DOCUMENT    = "DOCUMENT"
+    OBJECT      = "OBJECT"
+    MEDIA       = "MEDIA"
     
 class ObjectModel(TimestampMixin,Base):
     __tablename__ = OBJECT_TABLE.NAME

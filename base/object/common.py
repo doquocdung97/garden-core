@@ -132,6 +132,9 @@ class ObjectBase(HanlderProperty):
 	def get_command(self):
 		return ["ExecuteObject","DuplicateObject","DeleteObject"]
 
+	def get_type_object(self):
+		return OBJECTENUM.OBJECT
+	
 	@property
 	def Model(self):
 		if self.__model:
@@ -140,6 +143,7 @@ class ObjectBase(HanlderProperty):
 			model = ObjectModel()
 			model.id = self.UUID
 			model.name = self.Name
+			model.type = self.get_type_object()
 			model.parent = self.Document.Model
 			model.kind = self.__class__.__name__
 			return model
