@@ -4,7 +4,7 @@ from constants import VARIATIONS
 from base.model import PropertyModel
 from base.repository.propertyrepository import _PropertyRepository
 from typing import List
-
+from datetime import datetime
 class PropertyBase:
 		def __init__(self, obj, name, group, description, status, type,attribute = {}):
 				self.object = obj
@@ -123,16 +123,16 @@ class PropertyBase:
 				model = self.__model
 				if model:
 					model.value = self.getValue(True)
+					attr = dict(self.attribute.copy())
 					if self.__parameter:
-						attr = self.attribute.copy()
 						attr[VARIATIONS.PARAMETER_VALUE] = self.__parameter.toString()
-						model.attribute = attr
 					else:
-						attr = self.attribute.copy()
 						if VARIATIONS.PARAMETER_VALUE in attr:
 							del attr[VARIATIONS.PARAMETER_VALUE]
-						model.attribute = attr
-						self.attribute = attr
+					# now = datetime.now()
+					# attr["microsecond"] = now.microsecond
+					model.attribute = attr
+					self.attribute = attr
 					self.__repository.update(model)
 
 		def toString(self):
@@ -163,7 +163,7 @@ class PropertyBase:
 				model.group =	self.group
 				model.description =	self.description
 				model.status =	self.status
-				model.attribute =	self.attribute
+				model.attribute =	self.attribute.copy()
 				return model
 			
 		@Model.setter

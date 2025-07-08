@@ -13,9 +13,9 @@ def group_duplicates(input_list:list):
 	grouped_data = {}
 	for item in input_list:
 		if isinstance(item,str):
-			item = item.lower()
+			lower_item = item.lower()
 		if item not in grouped_data:
-			grouped_data[item] = item
+			grouped_data[lower_item] = item
 	return list(grouped_data.values())
 
 def validate_time(time_str):
