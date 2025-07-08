@@ -72,9 +72,9 @@ class Document(HanlderProperty,EventObserver):
 	def Objects(self)->list[ObjectBase]:  
 		return self.__objects
 	
-	@property
-	def Medias(self)->list[Media]:
-		return self.__medias
+	# @property
+	# def Medias(self)->list[Media]:
+	# 	return self.__medias
 	
 	def clone(self):
 		doc = self.__class__()
@@ -311,14 +311,23 @@ class Document(HanlderProperty,EventObserver):
 				objs.append(data)
 
 			# self.Media.restore(render.get(VARIATIONS.MEDIAS,[]))
+			prodoc = []
+			proparam = []
+			for pro in doc.property:
+				if pro.attribute.get(VARIATIONS.PARAMETER):
+					proparam.append(pro)
+				else:
+					prodoc.append(pro)
+					
+			self.Parameter.restore_property_with_database(proparam) 
 
 			for obj,data in objs:
 				obj.restore_with_database(data)
+				obj.Model = data
 				obj.init()
 				obj.onDocumentRestoredAfter(data.toJson())
-
-			# self.Parameter.restoreProperty(render.get(VARIATIONS.PARAMETERS,[])) 
-			self.restore_property_with_database(doc.property)
+				
+			self.restore_property_with_database(prodoc)
 			self.__set_change(False)
 		except Exception as ex:
 			# self.__log.error(f"restore document error: {ex}")
@@ -395,15 +404,15 @@ class Document(HanlderProperty,EventObserver):
 				del obj
 				self.__set_change(True)
 	
-	def deleteMedia(self,media:Media):
-		media.onDelete()
-		self.__medias.remove(media)
-		self.__set_change(True)
+	# def deleteMedia(self,media:Media):
+	# 	media.onDelete()
+	# 	self.__medias.remove(media)
+	# 	self.__set_change(True)
 	
 	def onDelete(self):
-		for index in range(len(self.__medias)):
-			media = self.__medias[0]
-			self.deleteMedia(media)
+		# for index in range(len(self.__medias)):
+		# 	media = self.__medias[0]
+		# 	self.deleteMedia(media)
 		for index in range(len(self.__objects)):
 			obj = self.__objects[0]
 			self.deleteObject(obj)
@@ -411,6 +420,8 @@ class Document(HanlderProperty,EventObserver):
 		file = FileHelper(self.TempDir)
 		file.deleteDir()
 		self.removeAllObserver()
+		rep = _ObjectRepository
+		return rep.delete(self.Model)
 
 	def __repr__(self):
 		return str(f"{self.__class__.__name__}({self.Name})")

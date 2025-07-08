@@ -43,7 +43,7 @@ class PropertyBase:
 							self.object.onBeforeChange(self.__Name)
 							self.setValue(val)
 							self.onChange()
-						elif self.getValue() != val:
+						elif self.getValue() != val or self.__parameter:
 								self.__parameter = None
 								self.object.onBeforeChange(self.__Name)
 								self.setValue(val)
@@ -72,7 +72,8 @@ class PropertyBase:
 
 			parameter = self.__parameter
 			if parameter:
-				data["parameter"] = parameter.toString()
+				attr = self.attribute
+				attr[VARIATIONS.PARAMETER_VALUE] = parameter.toString()
 			else:
 				data["value"] = self.getValue(True)
 
@@ -94,11 +95,12 @@ class PropertyBase:
 
 		def restore(self, reader:dict):
 				val = None
-				if reader.get('parameter'):
+				param = reader.get('attribute',{}).get(VARIATIONS.PARAMETER_VALUE)
+				if param:
 					try:
 						from base.object import ObjectBase
 						if isinstance(self.object,ObjectBase):
-							self.__parameter = eval(f"self.object.Document.{reader['parameter']}")
+							self.__parameter = eval(f"self.object.Document.{param}")
 							self.__parameter.addInList(self)
 							val = self.__parameter.getValue()
 					except:
@@ -121,6 +123,16 @@ class PropertyBase:
 				model = self.__model
 				if model:
 					model.value = self.getValue(True)
+					if self.__parameter:
+						attr = self.attribute.copy()
+						attr[VARIATIONS.PARAMETER_VALUE] = self.__parameter.toString()
+						model.attribute = attr
+					else:
+						attr = self.attribute.copy()
+						if VARIATIONS.PARAMETER_VALUE in attr:
+							del attr[VARIATIONS.PARAMETER_VALUE]
+						model.attribute = attr
+						self.attribute = attr
 					self.__repository.update(model)
 
 		def toString(self):
@@ -159,6 +171,12 @@ class PropertyBase:
 			if isinstance(obj,PropertyModel):
 				self.__model = obj
 				
+		def onDelete(self):
+			pass
+			# from ..parameter import Parameter
+			# if isinstance(self.object,Parameter):
+			# 	self.object.onDelete(self.__Name)
+
 def PropertyListBase(target):
 		name = f'{target.__name__}s'
 		class PropertyListBase(target):
@@ -518,3 +536,15 @@ class HanlderProperty:
 				obj.remove_object_from_property(self)
 			for obj in [*self.InListView]:
 				self.remove_object_from_property(obj)
+
+		def deleteProperty(self,name):
+			try:
+				property = self.__dict__.get(name)
+				if property:
+					property.onDelete()
+					self.__repository.delete(property.Model)
+					del self.__dict__[name]
+					self.__propertys.remove(name)
+					del property
+			except:
+				pass

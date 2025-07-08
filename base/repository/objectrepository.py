@@ -8,19 +8,45 @@ class ObjectRepository:
 		self.__log = loggerHelper(self.__class__.__name__)
 
 	def create(self, obj: ObjectModel):
-		return commit_db_session(obj,
-														 lambda data:self.__log.info(f"create ObjectModel: {obj}"),
-														 lambda ex:self.__log.error(f"create ObjectModel error: {str(ex)}"))
+		session = create_db_session(self.engine)
+		try:
+			model = obj
+			if obj.parent:
+				objmodel = session.query(ObjectModel).where(ObjectModel.id==obj.parent.id).first()
+				model.parent = objmodel
+			session.add(model)
+			session.commit()
+			self.__log.info(f"create ObjectModel: {obj}")
+			return model
+		except Exception as ex:
+			self.__log.error(f"create ObjectModel error: {str(ex)}")
+		finally:
+			session.close()
+
+		# return commit_db_session(obj,
+		# 												 lambda data:self.__log.info(f"create ObjectModel: {obj}"),
+		# 												 lambda ex:self.__log.error(f"create ObjectModel error: {str(ex)}"))
 
 	def get_document(self):
 		session = create_db_session(self.engine)
 		result = []
 		try:
 			result = session.query(ObjectModel).where(ObjectModel.type == OBJECTENUM.DOCUMENT).all()
-			self.__log.info("test")
 		except Exception as ex:
-			self.__log.error(f"get_document {ex}")
+			self.__log.error(f"get_document error: {ex}")
 		return session,result
 			
-		
+	def delete(self,obj: ObjectModel):
+		session = create_db_session(self.engine)
+		try:
+			session.delete(obj)
+			session.commit()
+			self.__log.info(f"delete done:{obj}")
+			return True
+		except Exception as ex:
+			self.__log.error(f"delete ObjectModel error: {ex}")
+		finally:
+			session.close()
+		return False
+	
 _ObjectRepository = ObjectRepository()

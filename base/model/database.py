@@ -19,7 +19,7 @@ def get_declarative_base():
 
 Session = None
 engine  = None
-def create_db_engine(db_conn_string = None, debug_mode=True):
+def create_db_engine(db_conn_string = None, debug_mode=False):
 	global engine
 	if not engine:
 		engine = create_engine("sqlite:///data.db",

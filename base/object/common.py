@@ -2,7 +2,7 @@ from ..property import HanlderProperty
 import uuid
 from common import loggerHelper,createAttribute
 from base.model import ObjectModel, OBJECTENUM
-
+from base.repository.objectrepository import _ObjectRepository
 class ObjectBase(HanlderProperty):
 
 	def __init__(self,document):
@@ -17,7 +17,7 @@ class ObjectBase(HanlderProperty):
 		self.Name = str()
 		self.__log = loggerHelper(str(self))
 		self.__model = None
-
+		self.__rep_obj = _ObjectRepository
 	@property
 	def Duplicate(self):
 		return self.__handle_duplicate()
@@ -117,7 +117,7 @@ class ObjectBase(HanlderProperty):
 		pass
 
 	def onDelete(self)->bool:
-		return True
+		return self.__rep_obj.delete(self.Model)
 	
 	def onChanged(self, prop):
 		self.__isChange = True
