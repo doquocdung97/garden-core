@@ -5,12 +5,16 @@
 from constants import VARIATIONS
 from ..object import MainObject,ObjectBase
 from common import createAttribute
+from base.model import OBJECTENUM, ObjectModel
 class MediaBase(ObjectBase):
-	def tree_view(self, check_in_list=True):
-		data = super().tree_view(check_in_list)
-		if data:
-			data["theme"] = VARIATIONS.MEDIA
-		return data
+	# def tree_view(self, check_in_list=True):
+	# 	data = super().tree_view(check_in_list)
+	# 	if data:
+	# 		data["theme"] = VARIATIONS.MEDIA
+	# 	return data
+	
+	def get_type_object(self):
+		return OBJECTENUM.MEDIA
 
 class MainMedia(MainObject):
 	pass

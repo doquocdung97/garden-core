@@ -44,7 +44,16 @@ class _Mutation(graphene.ObjectType):
 								raise ValueError('not found document')
 					else:
 						params.append(param)
-				model.data = Core.cmd.run(name,*params)
+				result = Core.cmd.run(name,*params)
+				if result:
+					model.success = True
+					if hasattr(result,"toJSON"):
+						model.data = result.toJSON()
+					else:
+						model.data = result
+				else:
+					model.success = False
+					model.code = BaseResultCode.B001
 			else:
 				model.success = False
 				model.code = BaseResultCode.B002

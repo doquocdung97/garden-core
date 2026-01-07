@@ -1,6 +1,8 @@
 from ..property import HanlderProperty
 import uuid
 from common import loggerHelper,createAttribute
+from base.model import ObjectModel, OBJECTENUM
+from base.repository.objectrepository import _ObjectRepository
 class ObjectBase(HanlderProperty):
 
 	def __init__(self,document):
@@ -13,7 +15,15 @@ class ObjectBase(HanlderProperty):
 		self.UUID = str(uuid.uuid4())
 		self.__init = False
 		self.Name = str()
-
+		self.__log = loggerHelper(str(self))
+		self.__model = None
+		self.__rep_obj = _ObjectRepository
+	@property
+	def Duplicate(self):
+		return self.__handle_duplicate()
+	
+	def __handle_duplicate(self):
+		pass
 	@property
 	def Clone(self):
 		return self.__clone
@@ -63,8 +73,18 @@ class ObjectBase(HanlderProperty):
 		}
 		
 	def restore(self,reader):
-		self.restoreProperty(reader["propertys"])
-		self.setProperties()
+		try:
+			self.restoreProperty(reader["propertys"])
+			self.setProperties()
+		except Exception as ex:
+			self.__log.error(f"Restore:{ex}")
+
+	def restore_with_database(self,obj:ObjectModel):
+		try:
+			self.restore_property_with_database(obj.property)
+			self.setProperties()
+		except Exception as ex:
+			self.__log.error(f"Restore:{ex}")
 
 	def IsChange(self):
 		return self.__isChange
@@ -97,7 +117,7 @@ class ObjectBase(HanlderProperty):
 		pass
 
 	def onDelete(self)->bool:
-		return True
+		return self.__rep_obj.delete(self.Model)
 	
 	def onChanged(self, prop):
 		self.__isChange = True
@@ -108,6 +128,30 @@ class ObjectBase(HanlderProperty):
 
 	def recompute(self):
 		pass
+
+	def get_command(self):
+		return ["ExecuteObject","DuplicateObject","DeleteObject"]
+
+	def get_type_object(self):
+		return OBJECTENUM.OBJECT
+	
+	@property
+	def Model(self):
+		if self.__model:
+			return self.__model
+		else:
+			model = ObjectModel()
+			model.id = self.UUID
+			model.name = self.Name
+			model.type = self.get_type_object()
+			model.parent = self.Document.Model
+			model.kind = self.__class__.__name__
+			return model
+		
+	@Model.setter
+	def Model(self,obj:ObjectModel):
+		if isinstance(obj,ObjectModel):
+			self.__model = obj
 class MainObject():
 	__properties = {}
 	def get(self,name:str =None)->type|None:

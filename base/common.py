@@ -33,7 +33,8 @@ class Vector:
 						raise ValueError("value")
 		
 		def __repr__(self) -> str:
-				return f"Vector({self.__x},{self.__y},{self.__z})"
+				# return f"Vector({self.__x},{self.__y},{self.__z})"
+				return "Vector({:.1f},{:.1f},{:.1f})".format(self.__x,self.__y,self.__z)
 
 class Color:
 	def __init__(self,r:int = 0,g:int = 0,b:int = 0,a:float = 0) -> None:
@@ -125,10 +126,14 @@ class FileObject:
 			return self.__path_file.toFileType()
 		
 	def toJSON(self)->dict:
+		path_file = self.path_file()
+		path_file = path_file.replace("\\","/")
+		path = f"/media/{self.__obj.Document.Name}/{path_file}"
 		return {
 			"name":self.get_name(),
 			"type":self.get_type(),
-			"url":self.path_file()
+			"url":path,
+			"path": path_file
 		}
 	
 	def save(self)->dict:
@@ -141,4 +146,7 @@ class FileObject:
 			return FileObject(obj,_file)
 		
 	def delete(self):
-		return self.__path_file.delete()
+		try:
+			return self.__path_file.delete()
+		except:
+			pass

@@ -14,19 +14,28 @@ Including another URLconf
 	1. Import the include() function: from django.urls import include, path
 	2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
+# from django.contrib import admin
 from django.urls import path
 from django.http import JsonResponse
 from core import Core
 from base.property import MainProperty
 from datetime import time
 from base.common import Vector, Color
+from common import get_temp_dir
 from base.document import _MainDocument
 from base.object import MainObject
 import os,json
 from graphene_django.views import GraphQLView
+from graphene_file_upload.django  import FileUploadGraphQLView
+ 
 from .graphql import schema
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.parsers import FileUploadParser
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework import status
+from rest_framework import serializers
+from .test.ex1 import test 
 # class Observer:
 # 	# def onBeforeChange(self,doc,prop):
 # 	# 	print("onBeforeChange - onBeforeChange  ",doc, prop)
@@ -41,69 +50,7 @@ from django.views.decorators.csrf import csrf_exempt
 # 		print("Observer - allObserver  ",doc,*args, **kwds)
 
 # observer = Observer()
-def test(request):
 
-	document = Core.get('testdemo')
-	if(not document):
-		document = Core.create("Document","testdemo")
-		# document.addObserver(observer)
-
-		document.Parameter.addProperty("PropertyFloatEnum","ParameterFloat")
-		document.Parameter.ParameterFloat = [1.1,2.0,10]
-		document.Parameter.ParameterFloat = 10
-
-		document.Label = "test demo"
-		# media = document.addMedia('./README.md',"label requirement")
-		# media1 = document.addMedia('./install.bat',"install")
-		obj = document.addObject('ObjectBase',"Furture")
-		obj1 = document.addObject('ObjectBase',"FurtureTest")
-		# obj.Label = "Furture_1 demo test"
-		# Furture_1 = document.addObject('ObjectSchedule',"Furture")
-		# Furture_1.addProperty("PropertyFloat","Datas")
-		# Furture_1.Datas = document.Parameter.ParameterFloat
-
-		car = document.addObject('ObjectCar',"Car")
-		group  = document.addObject('ObjectGroup',"Group")
-		camera = document.addObject("ObjectCameraBase","CameraBase")
-		group.Children = [car,obj]
-		car.Camera = camera
-		
-		# obj.addProperty("PropertyStrings","Texts")
-		# obj.Texts = ["1","2","3"]
-
-		# obj.addProperty("PropertyObject","base")
-		# obj.addProperty("PropertyFloat","Datas")
-		# obj.addProperty("PropertyVectors","Vector")
-		# obj.addProperty("PropertyMedias","Medias","group","this is list medias",2)
-		# obj.addProperty("PropertyColor","Color","group","this is Color",2)
-		# obj.addProperty("PropertyDocument","Template")
-		# doctestdemo = Core.get('test')
-		# if doctestdemo:
-		# 	doctestdemo = doctestdemo.clone()
-		# 	obj.Template = doctestdemo
-		# obj.Color = Color(1,20,40)
-		# obj.Vector = [Vector(10,10,10),Vector(10,20,10),Vector(10,30,0.10)]
-		# obj.Datas = document.Parameter.ParameterFloat
-		# obj.base = Furture_2
-		# obj.Medias = [media,media1]
-		
-		# obj.Time =time(0,0,1)
-	# obj2 = document.addObject('ObjectBase',"Furture_3")
-	# document.onDelete(obj2)
-	result = Core.cmd.run('Vector2D',1,2,"")
-	# main = MainProperty()
-	data = {
-		# "typeproperty":[name for name in main.get()],
-		"document":document.tree_view()
-	}
-	return JsonResponse(data)
-# test(None)
-def update(request):
-	time = request.GET.get('time', None)
-	document = Core.get('test')
-	if document and time:
-		document.Furture_1.Time = int(time)
-	return JsonResponse({"time":time})
 def command(request):
 	cmd = request.GET.get('cmd', None)
 	valset = request.GET.get('set', False)
@@ -121,6 +68,7 @@ def command(request):
 		"command":cmd,
 		"result":e
 		})
+
 def save(request):
 	name = request.GET.get('name', "test.zip")
 	path = os.path.join("./backup",name)
@@ -177,16 +125,29 @@ def clone(request):
 #     template = loader.get_template('index.html')
 #     return HttpResponse(template.render({}, request))
 
+from django.http import FileResponse, Http404
+# from django.contrib.staticfiles.finders import find
+
+def serve_static_file(request,doc, path):
+		doc = Core.get(doc)
+		if doc:
+			file = doc.get_media_with_path(path)
+			if file:
+				response = FileResponse(file.open())
+				response['Cache-Control'] = 'public, max-age=86400'
+				return response
+			
+		raise Http404(f"Static file '{path}' not found.")
+						
 urlpatterns = [
-	path('admin/', admin.site.urls),
 	path('test/', test),
-	path('update/', update),
 	path('command/', command),
 	path('restore/', restore),
 	path('save/', save),
 	path('clone/', clone),
 	path('config/', config),
 	# path('camera/', livefe, name="live_camera"),
-	path('graphql/', csrf_exempt(GraphQLView.as_view(graphiql=False,schema=schema)),name="graphql"),
+	path('graphql/', csrf_exempt(FileUploadGraphQLView.as_view(graphiql=False,schema=schema)),name="graphql"),
+	path('media/<str:doc>/<path:path>', serve_static_file),
 	# path('', index),
 ]

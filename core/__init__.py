@@ -1,3 +1,4 @@
+from common import loggerHelper,check_and_create_folder_log,createAttribute
 from base.document import Document
 from base.media import Media
 import os
@@ -5,11 +6,12 @@ from core._version import __project__
 import uuid,tempfile,json
 from .schedule import Schedule, EveryDay, EveryTime
 import time,threading,schedule
-from common import loggerHelper,check_and_create_folder_log,createAttribute
 from base.document import _MainDocument
 from base.object import ObjectBase
 from zipfile import ZipFile
 from .config import _Config
+from base.repository.objectrepository import _ObjectRepository
+from base.model.object import ObjectModel
 class IsNone:
 	def __init__(self,data) -> None:
 		self.__data = data
@@ -90,7 +92,6 @@ class _MainSchedule:
 			del self.__schedules[name]
 	def loop(self):
 		schedule.run_pending()
-
 # cmd = __MainCommand()
 from common.event import EventObserver
 class __Core(EventObserver):
@@ -99,11 +100,12 @@ class __Core(EventObserver):
 		self.__documents = {}
 		self.cmd = _MainCommand()
 		self.schedule = _MainSchedule()
+		self.__res = _ObjectRepository
 		#check and create folder logs
 		check_and_create_folder_log()
 		self.__log = loggerHelper("Core")
 		self.config = _Config()
-		if self.config.get("HandleAutoSave",True):
+		if self.config.get("HandleAutoSave",False):
 			self.job_auto_save = schedule.every(self.config.get("AutoSave",1)).minutes.do(self.__handle_auto_save)
 		
 
@@ -111,10 +113,10 @@ class __Core(EventObserver):
 		if not hasattr(self,"mod"):
 			import mod
 			self.mod = mod.modules
-			docs = self.config.get("AutoOpen",[])
-			for doc in docs:
-				self.restore(doc)
-
+			self.handle_database()
+			# docs = self.config.get("AutoOpen",[])
+			# for doc in docs:
+			# 	self.restore(doc)
 		# def loop():
 	# function to print square of given num
 	# while True:
@@ -122,6 +124,25 @@ class __Core(EventObserver):
 	# 	time.sleep(1)
 		loopcore = threading.Thread(target=self.loop,daemon=True)
 		loopcore.start()
+
+		
+	def handle_database(self):
+		session,result = self.__res.get_document()
+		for doc in result:
+				self.restore_with_database(doc)
+		session.close()
+		pass
+	
+	def restore_with_database(self,obj:ObjectModel):
+		main = _MainDocument()
+		DocClass = main.get(obj.kind)
+		if DocClass:
+			name = createAttribute(self.__documents,obj.name)
+			doc = DocClass()
+			doc.restore_with_database(obj)
+			doc.init()
+			self.onCreateDoc(name,doc)
+			return doc
 
 	def __handle_auto_save(self):
 		for name in self.get():
@@ -140,11 +161,15 @@ class __Core(EventObserver):
 		name = createAttribute(self.__documents,name)
 		if DocClass:
 			doc = DocClass()
-			doc.setProperties()
 			doc.Name = name
-			doc.init()
 			self.onCreateDoc(name,doc)
-			return self.__documents.get(name)
+			doc =  self.get(name)
+			if doc:
+				doc.Model = self.__res.create(doc.Model)
+				doc.setProperties()
+				doc.init()
+
+			return doc
 		return None
 
 	def restore(self,pathfile:str)->Document|None:
@@ -191,8 +216,8 @@ class __Core(EventObserver):
 			
 	def loop(self):
 		while True:
-			schedule.run_pending()
-			time.sleep(1)
+			self.schedule.loop()
+			time.sleep(0.01)
 		#pass
 		# try:
 		#     if self.__documents:
@@ -285,6 +310,24 @@ class _deleteObject(Command):
 	
 Core.cmd.add("DeleteObject",_deleteObject())
 
+class _executeObject(Command):
+	def GetResources(self):
+		return {
+			"Title":"Execute Object",
+			"Tooltip":"Execute Object",
+		}
+
+	def IsActive(self) -> bool:
+		return True
+	
+	def Parameter(self):
+		return [ObjectBase]
+	
+	def Activated(self,obj:ObjectBase):
+		return obj.execute()
+	
+Core.cmd.add("ExecuteObject",_executeObject())
+
 class _createMedia(Command):
 	def GetResources(self):
 		return {
@@ -351,3 +394,20 @@ class _createFile(Command):
 	
 Core.cmd.add("CreateFile",_createFile())
 Core.cmd.add("CreateFolder",_createFolder())
+class _duplicateObject(Command):
+	def GetResources(self):
+		return {
+			"Title":"Duplicate Object",
+			"Tooltip":"Duplicate Object",
+		}
+
+	def IsActive(self) -> bool:
+		return True
+	
+	def Parameter(self):
+		return [ObjectBase]
+	
+	def Activated(self,obj:ObjectBase):
+		return obj.Document.DuplicateObject(obj.Name)
+	
+Core.cmd.add("DuplicateObject",_duplicateObject())

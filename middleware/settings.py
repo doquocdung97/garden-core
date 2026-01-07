@@ -41,7 +41,6 @@ INSTALLED_APPS = [
     "graphql_ws.django",
     'graphene_django',
     'corsheaders',
-    'graphene_subscriptions'
 ]
 
 MIDDLEWARE = [
