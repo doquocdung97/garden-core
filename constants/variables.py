@@ -18,3 +18,5 @@ class VARIATIONS:
 	PARAMETERS = "parameters"
 	PROPERTY = "property"
 	PROPERTYS = "propertys"
+
+	PARAMETER_VALUE = "parameter_value"

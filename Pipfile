@@ -22,6 +22,7 @@ graphql-ws = "0.4.4"
 redis = "*"
 graphene-file-upload = "*"
 rich = "*"
+sqlalchemy = "*"
 
 [dev-packages]
 

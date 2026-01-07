@@ -1,4 +1,5 @@
 from base.property import HanlderProperty, PropertyBase
+from constants.variables import VARIATIONS
 
 class PropertyParameter:
 	def __init__(self,property:PropertyBase) -> None:
@@ -26,6 +27,11 @@ class PropertyParameter:
 	def addInList(self,obj:PropertyBase):
 		self.__inlist.append(obj)
 
+	def onDelete(self):
+		for pro in self.__inlist:
+			pro.Value = pro.Value
+		self.__inlist = []
+		
 class Parameter(HanlderProperty):
 	def __init__(self,doc) -> None:
 		super().__init__()
@@ -36,8 +42,13 @@ class Parameter(HanlderProperty):
 	def Document(self):
 		return self.__document
 	
-	def addProperty(self, type: str, name: str, group: str = '', description: str = '', status: int = 1, attribute=None) -> PropertyBase | None:
-		pro = super().addProperty(type, name, group, description, status, attribute)
+	@property
+	def Model(self):
+		return self.__document.Model
+	
+	def addProperty(self, type: str, name: str, group: str = '', description: str = '', status: int = 1, attribute={},model = False) -> PropertyBase | None:
+		attribute[VARIATIONS.PARAMETER] = True
+		pro = super().addProperty(type, name, group, description, status, attribute,model)
 		self.__parameterpropertys[pro.getName()] = PropertyParameter(pro)
 		self.__document.onCreateParameter(pro)
 		return pro
@@ -58,6 +69,7 @@ class Parameter(HanlderProperty):
 			return super(HanlderProperty,self).__getattribute__(name)
 	def __get(self,name)->PropertyParameter|None:
 		return self.__parameterpropertys.get(name)
+	
 	def onBeforeChange(self, prop):
 		return super().onBeforeChange(prop)
 	
@@ -67,3 +79,11 @@ class Parameter(HanlderProperty):
 		param = self.__get(prop)
 		if param:
 			param.onChange()
+	
+	def deleteProperty(self,prop):
+		param = self.__get(prop)
+		if param:
+			param.onDelete()
+			del self.__parameterpropertys[prop]
+
+		super().deleteProperty(prop)

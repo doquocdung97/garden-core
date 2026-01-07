@@ -51,3 +51,14 @@ class FileHelper:
 	
 	def get_path_file(self):
 		return self.__pathfile
+	def get_folder(self):
+		file_name = os.path.basename(self.__pathfile)
+		path = self.__pathfile.replace(file_name,str())
+		return path
+	def create_folder(self):
+		path = self.get_folder()
+		if not os.path.exists(path):
+			os.makedirs(path)
+
+	def open(self):
+		return open(self.__pathfile, 'rb')

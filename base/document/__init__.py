@@ -13,6 +13,8 @@ from common import group_duplicates
 from ..parameter import Parameter
 from common.event import EventObserver
 from ..property import PropertyBase
+from base.model import ObjectModel, OBJECTENUM
+from base.repository.objectrepository import _ObjectRepository
 class Document(HanlderProperty,EventObserver):
 	OBSERVERS = ["addObject","deleteObject"]
 	def __init__(self):
@@ -26,10 +28,10 @@ class Document(HanlderProperty,EventObserver):
 		self.__isTransaction = False
 		self.UUID = str(uuid.uuid4())
 		self.__name = str()
-		self.__tempdir = os.path.join(tempfile.gettempdir(),__project__,str(uuid.uuid4()))
+		# self.__tempdir = os.path.join(tempfile.gettempdir(),__project__,str(uuid.uuid4()))
 		self.Parameter = Parameter(self)
 		self.Media = Media(self)
-
+		self.__model = None
 	def init(self):
 		self.__log = loggerHelper(str(self))
 		# self.__set_change(True)
@@ -55,7 +57,7 @@ class Document(HanlderProperty,EventObserver):
 
 	@property
 	def TempDir(self):
-		tempdir = self.__tempdir
+		tempdir = os.path.join(tempfile.gettempdir(),__project__,self.UUID)
 		if not os.path.exists(tempdir):
 			os.makedirs(tempdir)
 		return tempdir
@@ -70,9 +72,9 @@ class Document(HanlderProperty,EventObserver):
 	def Objects(self)->list[ObjectBase]:  
 		return self.__objects
 	
-	@property
-	def Medias(self)->list[Media]:
-		return self.__medias
+	# @property
+	# def Medias(self)->list[Media]:
+	# 	return self.__medias
 	
 	def clone(self):
 		doc = self.__class__()
@@ -93,12 +95,15 @@ class Document(HanlderProperty,EventObserver):
 		object = mainobject.get(type)
 		if object:
 			object:ObjectBase = object(self)
+			name = createAttribute(self,name)
+			object.Name = name
+			rep = _ObjectRepository
+			object.Model = rep.create(object.Model)
 			if data:
 				object.restore(data)
 			else:
 				object.setProperties()
-			name = createAttribute(self,name)
-			object.Name = name
+			
 			self.__dict__[name] = object
 			self.__objects.append(object)
 			self.__set_change(True)
@@ -271,7 +276,7 @@ class Document(HanlderProperty,EventObserver):
 	
 	def restore(self,render):
 		try:
-			self.__tempdir = render['tempdir']
+			# self.__tempdir = render['tempdir']
 			self.UUID = render['uuid']
 			self.Name = render['name']
 
@@ -293,6 +298,54 @@ class Document(HanlderProperty,EventObserver):
 		except Exception as ex:
 			# self.__log.error(f"restore document error: {ex}")
 			print(f"restore document error: {ex}")
+
+	def restore_with_database(self,doc:ObjectModel):
+		try:
+			self.UUID = doc.id
+			self.Name = doc.name
+			self.Model = doc
+
+			objs = []
+			for object in doc.children:
+				data = self.__restore_object_with_database(object)
+				objs.append(data)
+
+			# self.Media.restore(render.get(VARIATIONS.MEDIAS,[]))
+			prodoc = []
+			proparam = []
+			for pro in doc.property:
+				if pro.attribute.get(VARIATIONS.PARAMETER):
+					proparam.append(pro)
+				else:
+					prodoc.append(pro)
+					
+			self.Parameter.restore_property_with_database(proparam) 
+
+			for obj,data in objs:
+				obj.restore_with_database(data)
+				obj.Model = data
+				obj.init()
+				obj.onDocumentRestoredAfter(data.toJson())
+				
+			self.restore_property_with_database(prodoc)
+			self.__set_change(False)
+		except Exception as ex:
+			# self.__log.error(f"restore document error: {ex}")
+			print(f"restore document error: {ex}")
+
+
+	def __restore_object_with_database(self,obj:ObjectModel):
+		if not hasattr(self,obj.name):
+			mainobject = MainObject()
+			object = mainobject.get(obj.kind)
+			if object:
+				object:ObjectBase = object(self)
+				object.onDocumentRestoredBefore(obj.toJson())
+				# object.restore(data)
+				self.__dict__[obj.name] = object
+				self.__objects.append(object)
+				return (object,obj)
+	
 
 	def DuplicateObject(self,name):
 		obj = self.getObjectByName(name)
@@ -351,15 +404,15 @@ class Document(HanlderProperty,EventObserver):
 				del obj
 				self.__set_change(True)
 	
-	def deleteMedia(self,media:Media):
-		media.onDelete()
-		self.__medias.remove(media)
-		self.__set_change(True)
+	# def deleteMedia(self,media:Media):
+	# 	media.onDelete()
+	# 	self.__medias.remove(media)
+	# 	self.__set_change(True)
 	
 	def onDelete(self):
-		for index in range(len(self.__medias)):
-			media = self.__medias[0]
-			self.deleteMedia(media)
+		# for index in range(len(self.__medias)):
+		# 	media = self.__medias[0]
+		# 	self.deleteMedia(media)
 		for index in range(len(self.__objects)):
 			obj = self.__objects[0]
 			self.deleteObject(obj)
@@ -367,6 +420,8 @@ class Document(HanlderProperty,EventObserver):
 		file = FileHelper(self.TempDir)
 		file.deleteDir()
 		self.removeAllObserver()
+		rep = _ObjectRepository
+		return rep.delete(self.Model)
 
 	def __repr__(self):
 		return str(f"{self.__class__.__name__}({self.Name})")
@@ -381,6 +436,30 @@ class Document(HanlderProperty,EventObserver):
 
 	def recompute(self):
 		pass
+
+	@property
+	def Model(self):
+		if self.__model:
+			return self.__model
+		else:
+			model = ObjectModel()
+			model.id = self.UUID
+			model.name = self.Name
+			model.type = OBJECTENUM.DOCUMENT
+			model.kind = self.__class__.__name__
+			model.version = __version__
+			return model
+		
+	@Model.setter
+	def Model(self,obj:ObjectModel):
+		if isinstance(obj,ObjectModel):
+			self.__model = obj
+	def get_media_with_path(self,path):
+		file = FileHelper(os.path.join(self.TempDir,path))
+		if file.isNone():
+			return None
+		return file
+
 class _MainDocument:
 	__documents = {}
 

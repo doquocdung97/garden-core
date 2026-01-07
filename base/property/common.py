@@ -1,7 +1,10 @@
 from common import group_duplicates,createAttribute
 from  inspect import ismethod,isfunction
 from constants import VARIATIONS
-
+from base.model import PropertyModel
+from base.repository.propertyrepository import _PropertyRepository
+from typing import List
+from datetime import datetime
 class PropertyBase:
 		def __init__(self, obj, name, group, description, status, type,attribute = {}):
 				self.object = obj
@@ -15,7 +18,8 @@ class PropertyBase:
 				self.attribute = attribute
 				self.__Value = self.valueDefault()
 				self.__parameter = None
-
+				self.__model = None
+				self.__repository = _PropertyRepository
 		def valueDefault(self):
 				return None
 		
@@ -39,7 +43,7 @@ class PropertyBase:
 							self.object.onBeforeChange(self.__Name)
 							self.setValue(val)
 							self.onChange()
-						elif self.getValue() != val:
+						elif self.getValue() != val or self.__parameter:
 								self.__parameter = None
 								self.object.onBeforeChange(self.__Name)
 								self.setValue(val)
@@ -68,7 +72,8 @@ class PropertyBase:
 
 			parameter = self.__parameter
 			if parameter:
-				data["parameter"] = parameter.toString()
+				attr = self.attribute
+				attr[VARIATIONS.PARAMETER_VALUE] = parameter.toString()
 			else:
 				data["value"] = self.getValue(True)
 
@@ -90,11 +95,12 @@ class PropertyBase:
 
 		def restore(self, reader:dict):
 				val = None
-				if reader.get('parameter'):
+				param = reader.get('attribute',{}).get(VARIATIONS.PARAMETER_VALUE)
+				if param:
 					try:
 						from base.object import ObjectBase
 						if isinstance(self.object,ObjectBase):
-							self.__parameter = eval(f"self.object.Document.{reader['parameter']}")
+							self.__parameter = eval(f"self.object.Document.{param}")
 							self.__parameter.addInList(self)
 							val = self.__parameter.getValue()
 					except:
@@ -114,6 +120,20 @@ class PropertyBase:
 
 		def setValue(self, val):
 				self.__Value = val
+				model = self.__model
+				if model:
+					model.value = self.getValue(True)
+					attr = dict(self.attribute.copy())
+					if self.__parameter:
+						attr[VARIATIONS.PARAMETER_VALUE] = self.__parameter.toString()
+					else:
+						if VARIATIONS.PARAMETER_VALUE in attr:
+							del attr[VARIATIONS.PARAMETER_VALUE]
+					# now = datetime.now()
+					# attr["microsecond"] = now.microsecond
+					model.attribute = attr
+					self.attribute = attr
+					self.__repository.update(model)
 
 		def toString(self):
 				return self.__Value
@@ -129,6 +149,33 @@ class PropertyBase:
 			except:
 				pass
 			return pro
+		
+		@property
+		def Model(self):
+			if self.__model:
+				return self.__model
+			else:
+				model = PropertyModel()
+				model.name =  self.__Name
+				model.type =	self.__type
+				model.value =	self.getValue(True)
+				model.object = self.object.Model
+				model.group =	self.group
+				model.description =	self.description
+				model.status =	self.status
+				model.attribute =	self.attribute.copy()
+				return model
+			
+		@Model.setter
+		def Model(self,obj:PropertyModel):
+			if isinstance(obj,PropertyModel):
+				self.__model = obj
+				
+		def onDelete(self):
+			pass
+			# from ..parameter import Parameter
+			# if isinstance(self.object,Parameter):
+			# 	self.object.onDelete(self.__Name)
 
 def PropertyListBase(target):
 		name = f'{target.__name__}s'
@@ -246,9 +293,10 @@ def PropertyViewBase(target):
 		def getValue(self, isSave=False):
 			# val = super(PropertyViewBase,self).getValue()
 			if hasattr(self,'func_value') and (ismethod(self.func_value) or isfunction(self.func_value)):
-				self.setValue(self.func_value())
+				# self.setValue(self.func_value()) #fix max call back
+				return self.func_value()
 				
-			return super(PropertyViewBase,self).getValue(isSave)
+			# return super(PropertyViewBase,self).getValue(isSave)
 		
 		def toJSON(self):
 			data = super().toJSON()
@@ -302,7 +350,7 @@ class HanlderProperty:
 			self.__propertys = []
 			self.__out_list_view = []
 			self.__in_list_view = []
-	
+			self.__repository = _PropertyRepository
 		@property
 		def OutListView(self):
 			return self.__out_list_view
@@ -322,12 +370,14 @@ class HanlderProperty:
 				property = self.__dict__.get(name)
 				return property
 		
-		def addProperty(self,type:str,name:str,group:str = '',description:str = '',status:int = 1,attribute = {})->PropertyBase|None:
+		def addProperty(self,type:str,name:str,group:str = '',description:str = '',status:int = 1,attribute = {},model = False)->PropertyBase|None:
 				mainProperty = MainProperty()
 				property = mainProperty.get(type)
 				if property:
 						name = createAttribute(self,name)
 						property = property(self,name,group,description,int(status),type,attribute)
+						if not model:
+							property.Model = self.__repository.create(property.Model)
 						self.__dict__[name] = property
 						self.__propertys.append(name)
 						return property
@@ -340,6 +390,19 @@ class HanlderProperty:
 					if property['name'] in self.propertys:
 						self.__dict__[property['name']].restore(property)
 						self.__update_in_and_out_list(property['type'],self.__dict__[property['name']].Value)
+				except Exception as ex:
+					pass
+
+		def restore_property_with_database(self,reader:List[PropertyModel]):
+			for pro in reader:
+				property = pro.toJson()
+				try:
+					self.addProperty(property['type'],property['name'],property['group'],property['description'],property['status'],property['attribute'],True)
+					if property['name'] in self.propertys:
+						new_pro = self.__dict__[property['name']]
+						new_pro.restore(property)
+						self.__update_in_and_out_list(property['type'],new_pro.Value)
+						new_pro.Model = pro
 				except Exception as ex:
 					pass
 
@@ -473,3 +536,15 @@ class HanlderProperty:
 				obj.remove_object_from_property(self)
 			for obj in [*self.InListView]:
 				self.remove_object_from_property(obj)
+
+		def deleteProperty(self,name):
+			try:
+				property = self.__dict__.get(name)
+				if property:
+					property.onDelete()
+					self.__repository.delete(property.Model)
+					del self.__dict__[name]
+					self.__propertys.remove(name)
+					del property
+			except:
+				pass

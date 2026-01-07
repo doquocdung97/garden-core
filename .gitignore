@@ -5,3 +5,5 @@
 /.vscode
 /Pipfile.lock
 *.zip
+*.db
+*.sqlite3

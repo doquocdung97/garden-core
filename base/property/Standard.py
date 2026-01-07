@@ -267,10 +267,12 @@ class PropertyFile(PropertyBase):
 		return None
 	
 	def checkValue(self,val:File):
-		return isinstance(val,File) or isinstance(val,FileObject) or val == None
+		return isinstance(val,File) or isinstance(val,FileObject) or isinstance(val,str) or val == None
 	
 	def convert(self, val):
 		obj = self.object
+		if val is None:
+			return
 		if not isinstance(val,str):
 			path = os.path.join(obj.UUID,val.name)
 			fordel_object = os.path.join(obj.Document.TempDir,obj.UUID)
@@ -308,6 +310,8 @@ class PropertyFile(PropertyBase):
 			old_val.delete()
 		if val and isinstance(val,File):
 			val = FileObject(self.object,val)
+		elif val and isinstance(val,str):
+			val = FileObject(self.object,File(val))
 		return super().setValue(val)
 
 		
